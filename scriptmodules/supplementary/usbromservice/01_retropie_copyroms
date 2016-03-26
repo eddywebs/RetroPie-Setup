@@ -15,7 +15,7 @@ home="$(eval echo ~$user)"
 rootdir="/opt/retropie"
 retropie_path="$home/RetroPie"
 
-usb_path="$UM_MOUNTPOINT/retropie"
+usb_path="$UM_MOUNTPOINT/Retropie"
 usb_path_from_rp="$usb_path/configs/from_retropie"
 usb_path_to_rp="$usb_path/configs/to_retropie"
 
