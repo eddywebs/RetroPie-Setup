@@ -59,8 +59,8 @@ log info "Attempting to create directory structure for ROMS in '$usb_path/roms' 
 find "$retropie_path/roms" -mindepth 1 -maxdepth 1 -type d -printf "$usb_path/roms/%f\n" | xargs mkdir -p 2>/dev/null || true
 
 # add system link from usb mount to original roms directory
-log info "adding system between $usb_path and $retropie_path"
-cp -ans $usb_path $retropie_path
+log info "adding system between $usb_path and $home"
+cp -ans $usb_path $home
 log info "added yay!"
 
 ## copy ROMs/BIOS from USB stick to local SD card
