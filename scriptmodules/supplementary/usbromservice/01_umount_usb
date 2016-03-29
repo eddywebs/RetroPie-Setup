@@ -1,0 +1,10 @@
+#!/bin/bash -ue
+## config / defaults
+user="USERTOBECHOSEN"
+
+home="$(eval echo ~$user)"
+rootdir="/opt/retropie"
+retropie_path="$home/RetroPie"
+
+#log info "removing broken symlinks from $retropie_path"
+find -L $retropie_path -type l -delete

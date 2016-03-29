@@ -19,6 +19,8 @@ usb_path="$UM_MOUNTPOINT/retropie"
 usb_path_from_rp="$usb_path/configs/from_retropie"
 usb_path_to_rp="$usb_path/configs/to_retropie"
 
+echo "usb_path"
+
 declare -A path_mapping
 
 # mapping from usb_path_to_rp/* to retropie location
@@ -56,30 +58,37 @@ log info "Attempting to create directory structure for ROMS in '$usb_path/roms' 
 # fetch list of romdirs from current installation and mirror onto external drive
 find "$retropie_path/roms" -mindepth 1 -maxdepth 1 -type d -printf "$usb_path/roms/%f\n" | xargs mkdir -p 2>/dev/null || true
 
+# add system link from usb mount to original roms directory
+log info "adding system between $usb_path and $retropie_path"
+#mount --bind $usb_path $retropie_path
+cp -ans "$usb_path/"* $retropie_path
+#cp -ans $UM_MOUNTPOINT/retropie $home
+log info "symlinks added yay!"
+
 # copy ROMs/BIOS from USB stick to local SD card
-for dir in roms BIOS; do
-    log info "Syncing $dir ..."
-    rsync -rtu --exclude '._*' --max-delete=-1 "$usb_path/$dir" "$retropie_path/" >/dev/null 2>&1 || log err "rsync failed to sync $dir, returned error code $?"
-    chown -R $user:$user "$retropie_path/$dir"
-done
+# for dir in roms BIOS; do
+#     log info "Syncing $dir ..."
+#     rsync -rtu --exclude '._*' --max-delete=-1 "$usb_path/$dir" "$retropie_path/" >/dev/null 2>&1 || log err "rsync failed to sync $dir, returned error code $?"
+#     chown -R $user:$user "$retropie_path/$dir"
+# done
 
-log info "Syncing configs ..."
-# copy configs to usb
-for to in "${!path_mapping[@]}"; do
-    from=${path_mapping[$to]}
-    rsync -rtu --exclude '._*' --max-delete=-1 "$from/" "$usb_path_from_rp/$to/" >/dev/null 2>&1 || log err "rsync failed to sync $from/ -> $usb_path_from_rp/$to/, returned error code $?"
-done
+# log info "Syncing configs ..."
+# # copy configs to usb
+# for to in "${!path_mapping[@]}"; do
+#     from=${path_mapping[$to]}
+#     rsync -rtu --exclude '._*' --max-delete=-1 "$from/" "$usb_path_from_rp/$to/" >/dev/null 2>&1 || log err "rsync failed to sync $from/ -> $usb_path_from_rp/$to/, returned error code $?"
+# done
 
-# copy configs from usb
-for from in $(find "$usb_path_to_rp/" -mindepth 1 -maxdepth 1); do
-    # basename
-    from_bn=${from##*/}
-    to=${path_mapping[$from_bn]}
-    if [[ -n "$to" ]]; then
-        rsync -rtu --exclude '._*' --max-delete=-1 "$from/" "$to/" >/dev/null 2>&1 || log err "rsync failed to sync $from/ -> $to/ configuration, returned error code $?"
-        chown -R $user:$user "$to"
-    fi
-done
+# # copy configs from usb
+# for from in $(find "$usb_path_to_rp/" -mindepth 1 -maxdepth 1); do
+#     # basename
+#     from_bn=${from##*/}
+#     to=${path_mapping[$from_bn]}
+#     if [[ -n "$to" ]]; then
+#         rsync -rtu --exclude '._*' --max-delete=-1 "$from/" "$to/" >/dev/null 2>&1 || log err "rsync failed to sync $from/ -> $to/ configuration, returned error code $?"
+#         chown -R $user:$user "$to"
+#     fi
+# done
 
-# unmount USB stick
-umount "$UM_MOUNTPOINT"
+# # unmount USB stick
+# umount "$UM_MOUNTPOINT"
