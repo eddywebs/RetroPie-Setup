@@ -110,7 +110,13 @@ function aptUpdate() {
 
 function aptInstall() {
     aptUpdate
-    apt-get install -y --no-install-recommends $@
+    apt-get install -y "$@"
+    return $?
+}
+
+function aptRemove() {
+    aptUpdate
+    apt-get remove -y "$@"
     return $?
 }
 
@@ -170,7 +176,7 @@ function getDepends() {
             packages=("${temp[@]}")
         fi
 
-        aptInstall ${packages[@]}
+        aptInstall --no-install-recommends "${packages[@]}"
         # check the required packages again rather than return code of apt-get, as apt-get
         # might fail for other reasons (other broken packages, eg samba in a chroot environment)
         for required in ${packages[@]}; do
@@ -411,7 +417,7 @@ function iniFileEditor() {
                     file="${file//$path\//}"
                     options+=("$i" "$file")
                     ((i++))
-                done < <(find "$path" -type f -name "$match")
+                done < <(find "$path" -type f -name "$match" | sort)
                 ;;
             _id_|*)
                 [[ "$mode" == "_id_" ]] && params=("${params[@]:1}")
@@ -484,7 +490,6 @@ function setESSystem() {
     local command=$5
     local platform=$6
     local theme=$7
-    local directlaunch=$8
 
     local conf="/etc/emulationstation/es_systems.cfg"
     mkdir -p "/etc/emulationstation"
@@ -502,7 +507,6 @@ function setESSystem() {
             -s "/systemList/system[last()]" -t elem -n "command" -v "$command" \
             -s "/systemList/system[last()]" -t elem -n "platform" -v "$platform" \
             -s "/systemList/system[last()]" -t elem -n "theme" -v "$theme" \
-            -s "/systemList/system[last()]" -t elem -n "directlaunch" -v "$directlaunch" \
             "$conf"
     else
         xmlstarlet ed -L \
@@ -512,7 +516,6 @@ function setESSystem() {
             -u "/systemList/system[name='$name']/command" -v "$command" \
             -u "/systemList/system[name='$name']/platform" -v "$platform" \
             -u "/systemList/system[name='$name']/theme" -v "$theme" \
-            -u "/systemList/system[name='$name']/directlaunch" -v "$directlaunch" \
             "$conf"
     fi
 
@@ -692,8 +695,8 @@ function delSystem() {
     # remove from emulation station
     xmlstarlet ed -L -P -d "/systemList/system[name='$system']" /etc/emulationstation/es_systems.cfg
     # remove from apps list for system
-    if [[ -f "$configdir/$system/emulators.cfg" ]]; then
-        iniConfig "=" '"' "$configdir/$system/emulators.cfg"
+    if [[ -f "$md_conf_root/$system/emulators.cfg" ]]; then
+        iniConfig "=" '"' "$md_conf_root/$system/emulators.cfg"
         iniDel "$id"
     fi
 }
@@ -726,10 +729,3 @@ _EOF_
     addSystem 1 "$id" "$port pc ports" "$cmd"
 }
 
-function addDirectLaunch() {
-    local name="$1"
-    local fullname="$2"
-    local cmd="$3"
-
-    setESSystem "$fullname" "$name" "" "" "$rootdir/supplementary/runcommand/runcommand.sh 0 \"$cmd\"" "" "$name" "true"
-}

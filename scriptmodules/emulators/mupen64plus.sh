@@ -34,6 +34,7 @@ function sources_mupen64plus() {
             'gizmo98 audio-omx'
             'ricrpi video-gles2rice pandora-backport'
             'ricrpi video-gles2n64'
+            'gizmo98 video-videocore'
         )
     else
         repos+=(
@@ -95,6 +96,7 @@ function build_mupen64plus() {
             'mupen64plus-video-gles2rice/projects/unix/mupen64plus-video-rice.so'
             'mupen64plus-video-gles2n64/projects/unix/mupen64plus-video-n64.so'
             'mupen64plus-audio-omx/projects/unix/mupen64plus-audio-omx.so'
+            'mupen64plus-video-videocore/projects/unix/mupen64plus-video-videocore.so'
         )
     else
         md_ret_require+=(
@@ -117,6 +119,8 @@ function install_mupen64plus() {
 }
 
 function configure_mupen64plus() {
+    mkRomDir "n64"
+
     # copy hotkey remapping start script
     cp "$scriptdir/scriptmodules/$md_type/$md_id/mupen64plus.sh" "$md_inst/bin/"
     chmod +x "$md_inst/bin/mupen64plus.sh"
@@ -128,7 +132,6 @@ function configure_mupen64plus() {
     mkUserDir "$md_conf_root/n64/"
     # Copy config files
     cp -v "$md_inst/share/mupen64plus/"{*.ini,font.ttf,*.conf} "$md_conf_root/n64/"
-    chown -R $user:$user "$md_conf_root/n64"
     su "$user" -c "$md_inst/bin/mupen64plus --md_conf_root $md_conf_root/n64 --datadir $md_conf_root/n64"
 
     iniConfig " = " '"' "$md_conf_root/n64/mupen64plus.cfg"
@@ -136,13 +139,14 @@ function configure_mupen64plus() {
     iniSet "SaveStatePath" "$romdir/n64"
     iniSet "SaveSRAMPath" "$romdir/n64"
 
-    mkRomDir "n64"
+    chown -R $user:$user "$md_conf_root/n64"
 
     delSystem "$md_id" "n64-mupen64plus"
     addSystem 0 "${md_id}-GLideN64" "n64" "$md_inst/bin/mupen64plus.sh mupen64plus-video-GLideN64 %ROM%"
     if isPlatform "rpi"; then
         addSystem 1 "${md_id}-gles2rice" "n64" "$md_inst/bin/mupen64plus.sh mupen64plus-video-rice %ROM%"
         addSystem 0 "${md_id}-gles2n64" "n64" "$md_inst/bin/mupen64plus.sh mupen64plus-video-n64 %ROM%"
+        addSystem 0 "${md_id}-videocore" "n64" "$md_inst/bin/mupen64plus.sh mupen64plus-video-videocore %ROM%"
     else
         addSystem 1 "${md_id}-glide64" "n64" "$md_inst/bin/mupen64plus.sh mupen64plus-video-glide64mk2 %ROM%"
     fi
