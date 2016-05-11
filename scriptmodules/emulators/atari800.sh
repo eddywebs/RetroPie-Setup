@@ -71,10 +71,13 @@ function configure_atari800() {
     mkUserDir "$md_conf_root/atari800"
 
     # move old config if exists to new location
-    moveConfigFile "$home/.atari800.cfg" "$md_conf_root/atari800.cfg"
+    if [[ -f "$md_conf_root/atari800.cfg" ]]; then
+        mv "$md_conf_root/atari800.cfg" "$md_conf_root/atari800/atari800.cfg"
+    fi
+    moveConfigFile "$home/.atari800.cfg" "$md_conf_root/atari800/atari800.cfg"
 
-    addSystem 1 "$md_id" "atari800" "$md_inst/bin/atari800 %ROM%"
-    addSystem 1 "$md_id" "atari5200" "$md_inst/bin/atari800 %ROM%"
+    addSystem 1 "atari800" "atari800" "$md_inst/bin/atari800 %ROM%"
+    addSystem 1 "atari800" "atari5200" "$md_inst/bin/atari800 %ROM%"
     
     __INFMSGS+=("You need to copy the Atari 800/5200 BIOS files (5200.ROM, ATARIBAS.ROM, ATARIOSB.ROM and ATARIXL.ROM) to the folder $biosdir and then on first launch configure it to scan that folder for roms (F1 -> Emulator Configuration -> System Rom Settings)")
 }

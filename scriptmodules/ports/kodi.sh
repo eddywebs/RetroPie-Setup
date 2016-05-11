@@ -20,6 +20,10 @@ function depends_kodi() {
             # remove old repository
             rm -f /etc/apt/sources.list.d/mene.list
             echo "deb http://dl.bintray.com/pipplware/dists/jessie/main/binary/ ./" >/etc/apt/sources.list.d/pipplware.list
+            # additional repository with armv7/8 binaries
+            if ! isPlatform "armv6"; then
+                echo "deb http://dl.bintray.com/pipplware/dists/jessie/armv7/binary/ ./" >>/etc/apt/sources.list.d/pipplware.list
+            fi
             wget -q -O- http://pipplware.pplware.pt/pipplware/key.asc | apt-key add - >/dev/null
         else
             rm -f /etc/apt/sources.list.d/pipplware.list
