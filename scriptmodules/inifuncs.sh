@@ -48,7 +48,7 @@ function iniProcess() {
     fi
 
     if [[ "$cmd" == "del" ]]; then
-        [[ -n "$match" ]] && sed -i -e "\|$match|d" "$file"
+        [[ -n "$match" ]] && sed -i -e "\|$(sedQuote "$match")|d" "$file"
         return 0
     fi
 
@@ -60,7 +60,7 @@ function iniProcess() {
         echo "$replace" >> "$file"
     else
         # replace existing key-value pair
-        sed -i -e "s|$match|$replace|g" "$file"
+        sed -i -e "s|$(sedQuote "$match")|$(sedQuote "$replace")|g" "$file"
     fi
 }
 
@@ -129,4 +129,12 @@ function getAutoConf(){
 
     [[ "$ini_value" == "1" ]] && return 1
     return 0
+}
+
+# escape backslashes and pipes for sed
+function sedQuote() {
+    local string="$1"
+    string="${string//\\/\\\\}"
+    string="${string//|/\\|}"
+    echo "$string"
 }
