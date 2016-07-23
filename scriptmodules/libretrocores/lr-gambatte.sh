@@ -11,7 +11,8 @@
 
 rp_module_id="lr-gambatte"
 rp_module_desc="Gameboy Color emu - libgambatte port for libretro"
-rp_module_menus="2+"
+rp_module_help="ROM Extensions: .gb .gbc .zip\n\nCopy your GameBoy roms to $romdir/gb\n\nCopy your GameBoy Color roms to $romdir/gbc"
+rp_module_section="main"
 
 function sources_lr-gambatte() {
     gitPullOrClone "$md_build" https://github.com/libretro/gambatte-libretro.git
@@ -33,9 +34,6 @@ function install_lr-gambatte() {
 }
 
 function configure_lr-gambatte() {
-    # remove old install folder
-    rm -rf "$rootdir/$md_type/gbclibretro"
-
     # add default green yellow palette for gameboy classic
     mkUserDir "$biosdir/palettes"
     cp "$scriptdir/scriptmodules/$md_type/$md_id/default.pal" "$biosdir/palettes/"

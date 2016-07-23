@@ -68,7 +68,7 @@ function isPlatform() {
 
 function addLineToFile() {
     if [[ -f "$2" ]]; then
-        cp -p "$2" "$2.old"
+        cp -p "$2" "$2.bak"
     fi
     sed -i -e '$a\' "$2"
     echo "$1" >> "$2"
@@ -110,7 +110,13 @@ function aptUpdate() {
 
 function aptInstall() {
     aptUpdate
-    apt-get install -y --no-install-recommends $@
+    apt-get install -y "$@"
+    return $?
+}
+
+function aptRemove() {
+    aptUpdate
+    apt-get remove -y "$@"
     return $?
 }
 
@@ -119,9 +125,9 @@ function getDepends() {
     local packages=()
     local failed=()
     for required in $@; do
-        if [[ "$__depends_mode" == "install" ]]; then
+        if [[ "$md_mode" == "install" ]]; then
             # make sure we have our sdl1 / sdl2 installed
-            if [[ "$required" == "libsdl1.2-dev" ]] && ! hasPackage libsdl1.2-dev 1.2.15-$(get_ver_sdl1)rpi "eq"; then
+            if ! isPlatform "x11" && [[ "$required" == "libsdl1.2-dev" ]] && ! hasPackage libsdl1.2-dev 1.2.15-$(get_ver_sdl1)rpi "eq"; then
                 packages+=("$required")
                 continue
             fi
@@ -133,14 +139,14 @@ function getDepends() {
         if [[ "$required" == "libraspberrypi-dev" ]] && hasPackage rbp-bootloader-osmc; then
             required="rbp-userland-dev-osmc"
         fi
-        if [[ "$__depends_mode" == "remove" ]]; then
+        if [[ "$md_mode" == "remove" ]]; then
             hasPackage "$required" && packages+=("$required")
         else
             hasPackage "$required" || packages+=("$required")
         fi
     done
     if [[ ${#packages[@]} -ne 0 ]]; then
-        if [[ "$__depends_mode" == "remove" ]]; then
+        if [[ "$md_mode" == "remove" ]]; then
             apt-get remove --purge -y "${packages[@]}"
             apt-get autoremove --purge -y
             return 0
@@ -170,11 +176,24 @@ function getDepends() {
             packages=("${temp[@]}")
         fi
 
-        aptInstall ${packages[@]}
-        # check the required packages again rather than return code of apt-get, as apt-get
-        # might fail for other reasons (other broken packages, eg samba in a chroot environment)
+        aptInstall --no-install-recommends "${packages[@]}"
+
+        # check the required packages again rather than return code of apt-get,
+        # as apt-get might fail for other reasons (eg other half installed packages)
         for required in ${packages[@]}; do
-            hasPackage "$required" || failed+=("$required")
+            if ! hasPackage "$required"; then
+                # workaround for installing samba in a chroot (fails due to failed smbd service restart)
+                # we replace the init.d script with an empty script so the install completes
+                if [[ "$required" == "samba" && "$__chroot" -eq 1 ]]; then
+                    mv /etc/init.d/smbd /etc/init.d/smbd.old
+                    echo "#!/bin/sh" >/etc/init.d/smbd
+                    chmod u+x /etc/init.d/smbd
+                    apt-get -f install
+                    mv /etc/init.d/smbd.old /etc/init.d/smbd
+                else
+                    failed+=("$required")
+                fi
+            fi
         done
         if [[ ${#failed[@]} -eq 0 ]]; then
             printMsgs "console" "Successfully installed package(s): ${packages[*]}."
@@ -218,16 +237,6 @@ function gitPullOrClone() {
     local branch="$3"
     [[ -z "$branch" ]] && branch="master"
 
-    mkdir -p "$dir"
-
-    # to work around a issue with git hanging in a qemu-arm-static chroot we can use a github created archive
-    if [[ $__chroot -eq 1 && "$repo" =~ github && ! "$md_id" =~ lr-picodrive|splashscreen|esthemes|ppsspp ]]; then
-        local archive=${repo/.git/}
-        archive="${archive/git:/https:}/archive/$branch.tar.gz"
-        wget -O- -q "$archive" | tar -xvz --strip-components=1 -C "$dir"
-        return
-    fi
-
     if [[ -d "$dir/.git" ]]; then
         pushd "$dir" > /dev/null
         git pull > /dev/null
@@ -243,14 +252,22 @@ function gitPullOrClone() {
 
 function ensureRootdirExists() {
     mkdir -p "$rootdir"
+    mkUserDir "$datadir"
+    mkUserDir "$configdir"
+    mkUserDir "$configdir/all"
+
     # make sure we have inifuncs.sh in place and that it is up to date
     mkdir -p "$rootdir/lib"
     if [[ ! -f "$rootdir/lib/inifuncs.sh" || "$rootdir/lib/inifuncs.sh" -ot "$scriptdir/scriptmodules/inifuncs.sh" ]]; then
         cp --preserve=timestamps "$scriptdir/scriptmodules/inifuncs.sh" "$rootdir/lib/inifuncs.sh"
     fi
-    mkUserDir "$datadir"
-    mkUserDir "$configdir"
-    mkUserDir "$configdir/all"
+
+    # create template for autoconf.cfg and make sure it is owned by $user
+    local config="$configdir/all/autoconf.cfg"
+    if [[ ! -f "$config" ]]; then
+        echo "# this file can be used to enable/disable retropie autoconfiguration features" >"$config"
+    fi
+    chown $user:$user "$config"
 }
 
 function rmDirExists() {
@@ -276,6 +293,13 @@ function mkRomDir() {
 function moveConfigDir() {
     local from="$1"
     local to="$2"
+
+    # if we are in remove mode - remove the symlink
+    if [[ "$md_mode" == "remove" ]]; then
+        [[ -h "$from" ]] && rm -f "$from"
+        return
+    fi
+
     mkUserDir "$to"
     # move any old configs to the new location
     if [[ -d "$from" && ! -h "$from" ]]; then
@@ -295,6 +319,13 @@ function moveConfigDir() {
 function moveConfigFile() {
     local from="$1"
     local to="$2"
+
+    # if we are in remove mode - remove the symlink
+    if [[ "$md_mode" == "remove" && -h "$from" ]]; then
+        rm -f "$from"
+        return
+    fi
+
     # move old file
     if [[ -f "from" && ! -h "from" ]]; then
         mv "from" "$to"
@@ -302,6 +333,29 @@ function moveConfigFile() {
     ln -sf "$to" "$from"
     # set ownership of the actual link to $user
     chown -h $user:$user "$from"
+}
+
+function diffFiles() {
+    diff -q "$1" "$2" >/dev/null
+    return $?
+}
+
+function copyDefaultConfig() {
+    local from="$1"
+    local to="$2"
+    # if the destination exists, and is different then copy the config as name.rp-dist
+    if [[ -f "$to" ]]; then
+        if ! diffFiles "$from" "$to"; then
+            to+=".rp-dist"
+            printMsgs "console" "Copying new default configuration to $to"
+            cp "$from" "$to"
+        fi
+    else
+        printMsgs "console" "Copying default configuration to $to"
+        cp "$from" "$to"
+    fi
+
+    chown $user:$user "$to"
 }
 
 function setDispmanx() {
@@ -393,7 +447,7 @@ function iniFileEditor() {
         # process the editing of the option
         i=0
         options=("U" "unset")
-        local default
+        local default=""
 
         params=(${params[sel]})
         local mode="${params[0]}"
@@ -411,7 +465,7 @@ function iniFileEditor() {
                     file="${file//$path\//}"
                     options+=("$i" "$file")
                     ((i++))
-                done < <(find "$path" -type f -name "$match")
+                done < <(find "$path" -type f -name "$match" | sort)
                 ;;
             _id_|*)
                 [[ "$mode" == "_id_" ]] && params=("${params[@]:1}")
@@ -439,7 +493,7 @@ function iniFileEditor() {
             cmd=(dialog --backtitle "$__backtitle" --inputbox "Please enter the value for ${keys[sel]}" 10 60 "${values[sel]}")
             value=$("${cmd[@]}" 2>&1 >/dev/tty)
         elif [[ "$choice" == "U" ]]; then
-            value="$default"
+            value=""
         else
             if [[ "$mode" == "_id_" ]]; then
                 value="$choice"
@@ -466,7 +520,6 @@ function iniFileEditor() {
 
         # re-add the include line(s)
         if [[ -n "$include" ]]; then
-            echo "" >>"$config"
             echo "$include" >>"$config"
         fi
 
@@ -484,7 +537,6 @@ function setESSystem() {
     local command=$5
     local platform=$6
     local theme=$7
-    local directlaunch=$8
 
     local conf="/etc/emulationstation/es_systems.cfg"
     mkdir -p "/etc/emulationstation"
@@ -502,7 +554,6 @@ function setESSystem() {
             -s "/systemList/system[last()]" -t elem -n "command" -v "$command" \
             -s "/systemList/system[last()]" -t elem -n "platform" -v "$platform" \
             -s "/systemList/system[last()]" -t elem -n "theme" -v "$theme" \
-            -s "/systemList/system[last()]" -t elem -n "directlaunch" -v "$directlaunch" \
             "$conf"
     else
         xmlstarlet ed -L \
@@ -512,7 +563,6 @@ function setESSystem() {
             -u "/systemList/system[name='$name']/command" -v "$command" \
             -u "/systemList/system[name='$name']/platform" -v "$platform" \
             -u "/systemList/system[name='$name']/theme" -v "$theme" \
-            -u "/systemList/system[name='$name']/directlaunch" -v "$directlaunch" \
             "$conf"
     fi
 
@@ -536,25 +586,9 @@ function ensureSystemretroconfig {
         mkUserDir "$configdir/$system"
     fi
 
-    local include_comment="# Settings made here will only override settings in the global retroarch.cfg if placed above the #include line"
-    local include="#include \"$configdir/all/retroarch.cfg\""
-
-    local config="$configdir/$system/retroarch.cfg"
-    # if the user has an existing config we will not overwrite it, but instead create the 
-    # default config as retroarch.cfg.rp-dist (apart from the very important #include addition)
-    if [[ -f "$config" ]]; then
-        if ! grep -q "$include" "$config"; then
-            sed -i "1i$include_comment\n" "$config"
-            echo -e "\n$include" >>"$config"
-        fi
-        config="$configdir/$system/retroarch.cfg.rp-dist"
-        rm -f "$config"
-    fi
-
+    local config="$(mktemp)"
     # add the initial comment regarding include order
-    if [[ ! -f "$config" ]]; then
-        echo -e "$include_comment\n" >"$config"
-    fi
+    echo -e "# Settings made here will only override settings in the global retroarch.cfg if placed above the #include line\n" >"$config"
 
     # add the per system default settings
     iniConfig " = " '"' "$config"
@@ -567,16 +601,20 @@ function ensureSystemretroconfig {
     fi
 
     # include the main retroarch config
-    echo -e "\n$include" >>"$config"
+    echo -e "\n#include \"$configdir/all/retroarch.cfg\"" >>"$config"
 
-    chown $user:$user "$config"
+    copyDefaultConfig "$config" "$configdir/$system/retroarch.cfg"
+    rm "$config"
 }
 
 function setRetroArchCoreOption() {
     local option="$1"
     local value="$2"
     iniConfig " = " "\"" "$configdir/all/retroarch-core-options.cfg"
-    iniSet "$option" "$value"
+    iniGet "$option"
+    if [[ -z "$ini_value" ]]; then
+        iniSet "$option" "$value"
+    fi
     chown $user:$user "$configdir/all/retroarch-core-options.cfg"
 }
 
@@ -607,6 +645,35 @@ endmode
 _EOF_
 }
 
+function joy2keyStart() {
+    local params=("$@")
+    if [[ "${#params[@]}" -eq 0 ]]; then
+        params=(1b5b44 1b5b43 1b5b41 1b5b42 0a 20)
+    fi
+    # check if joy2key is installed
+    [[ ! -f "$rootdir/supplementary/runcommand/joy2key.py" ]] && return 1
+
+    __joy2key_dev=$(ls -1 /dev/input/js* 2>/dev/null | head -n1)
+
+    # if no joystick device, or joy2key is already running exit
+    [[ -z "$__joy2key_dev" ]] || pgrep -f joy2key.py >/dev/null && return 1
+
+    # if joy2key.py is installed run it with cursor keys for axis, and enter + space for buttons 0 and 1
+    if "$rootdir/supplementary/runcommand/joy2key.py" "$__joy2key_dev" "${params[@]}" & 2>/dev/null; then
+        __joy2key_pid=$!
+        return 0
+    fi
+
+    return 1
+}
+
+function joy2keyStop() {
+    if [[ -n $__joy2key_pid ]]; then
+        kill -INT $__joy2key_pid 2>/dev/null
+        sleep 1
+    fi
+}
+
 # arg 1: 0 or 1 to make the emulator default, arg 2: module id, arg 3: "system" or "system platform" or "system platform theme", arg 4: commandline, arg 5 (optional) fullname for es config, arg 6: extensions
 function addSystem() {
     local default="$1"
@@ -633,6 +700,12 @@ function addSystem() {
         system="${names[0]}"
         platform="$system"
         theme="$system"
+    fi
+
+    # check if we are removing the system
+    if [[ "$md_mode" == "remove" ]]; then
+        delSystem "$id" "$system"
+        return
     fi
 
     # for the ports section, we will handle launching from a separate script and hardcode exts etc
@@ -670,8 +743,6 @@ function addSystem() {
     # add the extensions again as uppercase
     exts+=" ${exts^^}"
 
-    setESSystem "$fullname" "$es_name" "$es_path" "$exts" "$es_cmd" "$platform" "$theme"
-
     # create a config folder for the system / port
     mkUserDir "$md_conf_root/$system"
 
@@ -679,22 +750,36 @@ function addSystem() {
     if [[ -n "$cmd" ]]; then
         iniConfig "=" '"' "$md_conf_root/$system/emulators.cfg"
         iniSet "$id" "$cmd"
-        if [[ "$default" == "1" ]]; then
+        # set a default unless there is one already set
+        iniGet "default"
+        if [[ -z "$ini_value" && "$default" -eq 1 ]]; then
             iniSet "default" "$id"
         fi
         chown $user:$user "$md_conf_root/$system/emulators.cfg"
     fi
+
+    setESSystem "$fullname" "$es_name" "$es_path" "$exts" "$es_cmd" "$platform" "$theme"
 }
 
 function delSystem() {
     local id="$1"
     local system="$2"
-    # remove from emulation station
-    xmlstarlet ed -L -P -d "/systemList/system[name='$system']" /etc/emulationstation/es_systems.cfg
+    local config="$md_conf_root/$system/emulators.cfg"
     # remove from apps list for system
-    if [[ -f "$configdir/$system/emulators.cfg" ]]; then
-        iniConfig "=" '"' "$configdir/$system/emulators.cfg"
+    if [[ -f "$config" && -n "$id" ]]; then
+        # delete emulator entry
+        iniConfig "=" '"' "$config"
         iniDel "$id"
+        # if it is the default - remove it - runcommand will prompt to select a new default
+        iniGet "default"
+        [[ "$ini_value" == "$id" ]] && iniDel "default"
+        # if we no longer have any entries in the emulators.cfg file we can remove it
+        grep -q "=" "$config" || rm -f "$config"
+    fi
+
+    # if we don't have an emulators.cfg we can remove the system from emulation station
+    if [[ -f /etc/emulationstation/es_systems.cfg && ! -f "$config" ]]; then
+        xmlstarlet ed -L -P -d "/systemList/system[name='$system']" /etc/emulationstation/es_systems.cfg
     fi
 }
 
@@ -723,13 +808,15 @@ _EOF_
     chown $user:$user "$file"
     chmod +x "$file"
 
-    addSystem 1 "$id" "$port pc ports" "$cmd"
+    # remove the ports launch script if in remove mode
+    if [[ "$md_mode" == "remove" ]]; then
+        rm -f "$file"
+        # if there are no more port launch scripts we can remove ports from emulation station
+        if [[ "$(ls -1 "$romdir/ports/*.sh" 2>/dev/null | wc -l)" -eq 0 ]]; then
+            delSystem "$id" "ports"
+        fi
+    else
+        addSystem 1 "$id" "$port pc ports" "$cmd"
+    fi
 }
 
-function addDirectLaunch() {
-    local name="$1"
-    local fullname="$2"
-    local cmd="$3"
-
-    setESSystem "$fullname" "$name" "" "" "$rootdir/supplementary/runcommand/runcommand.sh 0 \"$cmd\"" "" "$name" "true"
-}

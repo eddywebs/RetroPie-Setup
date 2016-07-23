@@ -11,7 +11,8 @@
 
 rp_module_id="vice"
 rp_module_desc="C64 emulator VICE"
-rp_module_menus="2+"
+rp_module_help="ROM Extensions: .crt .d64 .g64 .prg .t64 .tap .x64 .zip .vsf\n\nCopy your Commodore 64 roms to $romdir/c64"
+rp_module_section="opt"
 rp_module_flags="dispmanx !mali"
 
 function depends_vice() {
@@ -27,9 +28,9 @@ function sources_vice() {
 }
 
 function build_vice() {
-    local params=(--enable-sdlui)
+    local params=(--enable-sdlui --disable-ffmpeg)
     ! isPlatform "x11" && params+=(--without-pulse --with-sdlsound)
-    ./configure --prefix="$md_inst" --prefix="$md_inst/lib" "${params[@]}"
+    ./configure --prefix="$md_inst" "${params[@]}"
     if ! isPlatform "x11"; then
         sed -i "s/#define HAVE_HWSCALE/#undef HAVE_HWSCALE/" src/config.h
     fi
@@ -51,15 +52,10 @@ function configure_vice() {
         ln -snf "$md_inst/lib64" "$md_inst/lib"
     fi
 
-    # if we have an old config vice.cfg then move it to sdl-vicerc
-    if [[ -f "$md_conf_root/c64/vice.cfg" ]]; then
-        mv -v "$md_conf_root/c64/vice.cfg" "$md_conf_root/c64/sdl-vicerc"
-    elif [[ ! -f "$md_conf_root/c64/sdl-vicerc" ]]; then
-        echo "[C64]" > "$md_conf_root/c64/sdl-vicerc"
-    fi
-    chown -R $user:$user "$md_conf_root/c64"
+    local config="$(mktemp)"
+    echo "[C64]" > "$(mktemp)"
 
-    iniConfig "=" "" "$md_conf_root/c64/sdl-vicerc"
+    iniConfig "=" "" "$config"
     if ! isPlatform "x11"; then
         iniSet "SDLBitdepth" "8"
         iniSet "Mouse" "1"
@@ -73,22 +69,27 @@ function configure_vice() {
         iniSet "WarpMode" "0"
     fi
 
+    copyDefaultConfig "$config" "$md_conf_root/c64/sdl-vicerc"
+    rm "$config"
+
     if isPlatform "rpi"; then
         configure_dispmanx_on_vice
         setDispmanx "$md_id" 1
     fi
 
-    addSystem 1 "$md_id-x64" "c64" "$md_inst/bin/x64 %ROM%"
-    addSystem 0 "$md_id-x64sc" "c64" "$md_inst/bin/x64sc %ROM%" 
-    addSystem 0 "$md_id-x128" "c64" "$md_inst/bin/x128 %ROM%"
-    addSystem 0 "$md_id-xpet" "c64" "$md_inst/bin/xpet %ROM%"
-    addSystem 0 "$md_id-xplus4" "c64" "$md_inst/bin/xplus4 %ROM%"
-    addSystem 0 "$md_id-xvic" "c64" "$md_inst/bin/xvic %ROM%"
+    local sdl_env="SDL_DISPMANX_RATIO=1.33"
+    addSystem 1 "$md_id-x64" "c64" "$sdl_env $md_inst/bin/x64 %ROM%"
+    addSystem 0 "$md_id-x64sc" "c64" "$sdl_env $md_inst/bin/x64sc %ROM%"
+    addSystem 0 "$md_id-x128" "c64" "$sdl_env $md_inst/bin/x128 %ROM%"
+    addSystem 0 "$md_id-xpet" "c64" "$sdl_env $md_inst/bin/xpet %ROM%"
+    addSystem 0 "$md_id-xplus4" "c64" "$sdl_env $md_inst/bin/xplus4 %ROM%"
+    addSystem 0 "$md_id-xvic" "c64" "$sdl_env $md_inst/bin/xvic %ROM%"
+    addSystem 0 "$md_id-xvic-cart" "c64" "$sdl_env $md_inst/bin/xvic -cartgeneric %ROM%"
 }
 
 function configure_dispmanx_off_vice() {
     local id
-    for id in $md_id-x64 $md_id-x64sc $md_id-x128 $md_id-xpet $md_id-xplus4 $md_id-xvic; do
+    for id in $md_id-x64 $md_id-x64sc $md_id-x128 $md_id-xpet $md_id-xplus4 $md_id-xvic $md_id-xvic-cart; do
         setDispmanx "id" 0
     done
     iniConfig "=" "" "$md_conf_root/c64/sdl-vicerc"
@@ -98,7 +99,7 @@ function configure_dispmanx_off_vice() {
 
 function configure_dispmanx_on_vice() {
     local id
-    for id in $md_id-x64 $md_id-x64sc $md_id-x128 $md_id-xpet $md_id-xplus4 $md_id-xvic; do
+    for id in $md_id-x64 $md_id-x64sc $md_id-x128 $md_id-xpet $md_id-xplus4 $md_id-xvic $md_id-xvic-cart; do
         setDispmanx "$id" 1
     done
     iniConfig "=" "" "$md_conf_root/c64/sdl-vicerc"

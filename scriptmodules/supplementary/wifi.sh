@@ -11,8 +11,8 @@
 
 rp_module_id="wifi"
 rp_module_desc="Configure Wifi"
-rp_module_menus="3+"
-rp_module_flags="nobin !x86"
+rp_module_section="config"
+rp_module_flags="!x86"
 
 function remove_wifi() {
     sed -i '/RETROPIE CONFIG START/,/RETROPIE CONFIG END/d' "/etc/wpa_supplicant/wpa_supplicant.conf"
@@ -117,9 +117,10 @@ $wpa_config
 _EOF_
 
     ifup wlan0 &>/dev/null
+    dialog --backtitle "$__backtitle" --infobox "\nConnecting ..." 5 40 >/dev/tty
     local id=""
     i=0
-    while [[ -z "$id" && $i -lt 20 ]]; do
+    while [[ -z "$id" && $i -lt 30 ]]; do
         sleep 1
         id=$(iwgetid -r)
         ((i++))
@@ -127,7 +128,7 @@ _EOF_
     [[ -z "$id" ]] && printMsgs "dialog" "Unable to connect to network $essid"
 }
 
-function configure_wifi() {
+function gui_wifi() {
     while true; do
         local ip_int=$(ip route get 8.8.8.8 2>/dev/null | head -1 | cut -d' ' -f8)
         local cmd=(dialog --backtitle "$__backtitle" --menu "Configure WiFi\nCurrent IP: $ip_int\nWireless ESSID: $(iwgetid -r)" 22 76 16)

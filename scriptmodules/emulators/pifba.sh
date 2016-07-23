@@ -11,8 +11,9 @@
 
 rp_module_id="pifba"
 rp_module_desc="FBA emulator PiFBA"
-rp_module_menus="2+"
-rp_module_flags="!x86 !mali"
+rp_module_help="ROM Extension: .zip\n\nCopy your FBA roms to\n$romdir/fba or\n$romdir/neogeo or\n$romdir/arcade\n\nFor NeoGeo games the neogeo.zip BIOS is required and must be placed in the same directory as your FBA roms."
+rp_module_section="main"
+rp_module_flags="!x11 !mali"
 
 function depends_pifba() {
     getDepends libasound2-dev libsdl1.2-dev libraspberrypi-dev
@@ -51,14 +52,9 @@ function configure_pifba() {
 
     local config
     for config in fba2x.cfg capex.cfg; do
-        # move old config
+        # move old config if it exists
         moveConfigFile "$md_inst/$config" "$md_conf_root/fba/$config"
-
-        # if the user doesn't already have a config, we will copy the default.
-        if [[ ! -f "$md_conf_root/fba/$config" ]]; then
-            cp "$config.template" "$md_conf_root/fba/$config"
-        fi
-        chown $user:$user "$md_conf_root/fba/$config"
+        copyDefaultConfig "$config.template" "$md_conf_root/fba/$config"
     done
 
     local def=0

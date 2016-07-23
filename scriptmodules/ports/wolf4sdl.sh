@@ -11,7 +11,7 @@
 
 rp_module_id="wolf4sdl"
 rp_module_desc="Wolf4SDL - port of Wolfenstein 3D / Spear of Destiny engine"
-rp_module_menus="4+"
+rp_module_section="opt"
 rp_module_flags="dispmanx !mali"
 
 function depends_wolf4sdl() {
@@ -55,6 +55,17 @@ function install_wolf4sdl() {
     md_ret_files=('bin')
 }
 
+function game_data_wolf4sdl() {
+    if [[ ! -f "$romdir/ports/wolf3d/gamemaps.wl1" ]]; then
+        cd "$__tmpdir"
+        # Get shareware game data
+        wget -q -O wolf3d14.zip http://maniacsvault.net/ecwolf/files/shareware/wolf3d14.zip
+        unzip -j -o -LL wolf3d14.zip -d "$romdir/ports/wolf3d"
+        chown -R $user:$user "$romdir/ports/wolf3d"
+        rm -f wolf3d14.zip
+    fi
+}
+
 function configure_wolf4sdl() {
     local bin
     local bins
@@ -70,14 +81,10 @@ function configure_wolf4sdl() {
 
     moveConfigDir "$home/.wolf4sdl" "$md_conf_root/wolf3d"
 
-    # Get shareware game data
-    wget -q -O wolf3d14.zip http://maniacsvault.net/ecwolf/files/shareware/wolf3d14.zip
-    unzip -j -o -LL wolf3d14.zip -d "$romdir/ports/wolf3d"
-    chown -R $user:$user "$romdir/ports/wolf3d"
-    rm -f wolf3d14.zip
-
     setDispmanx "$md_id" 1
     configure_dispmanx_on_wolf4sdl
+    
+    [[ "$md_mode" == "install" ]] && game_data_wolf4sdl
 }
 
 function configure_dispmanx_off_wolf4sdl() {

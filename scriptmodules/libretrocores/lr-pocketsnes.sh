@@ -11,7 +11,8 @@
 
 rp_module_id="lr-pocketsnes"
 rp_module_desc="SNES emu - ARM based SNES emulator for libretro"
-rp_module_menus="2+"
+rp_module_help="ROM Extensions: .bin .smc .sfc .fig .swc .mgd .zip\n\nCopy your SNES roms to $romdir/snes"
+rp_module_section="main"
 rp_module_flags="!x86"
 
 function sources_lr-pocketsnes() {
@@ -32,11 +33,6 @@ function install_lr-pocketsnes() {
 }
 
 function configure_lr-pocketsnes() {
-    # remove old install folder
-    rm -rf "$rootdir/$md_type/pocketsnes"
-    # remove old core library
-    rm -f "$md_inst/libretro.so"
-
     mkRomDir "snes"
     ensureSystemretroconfig "snes"
 

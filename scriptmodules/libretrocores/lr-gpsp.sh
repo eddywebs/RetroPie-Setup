@@ -11,7 +11,8 @@
 
 rp_module_id="lr-gpsp"
 rp_module_desc="GBA emu - gpSP port for libretro"
-rp_module_menus="2+"
+rp_module_help="ROM Extensions: .gba .zip\n\nCopy your Game Boy Advance roms to $romdir/gba\n\nCopy the required BIOS file gba_bios.bin to $biosdir"
+rp_module_section="main"
 rp_module_flags="!x86"
 
 function sources_lr-gpsp() {
@@ -36,12 +37,10 @@ function install_lr-gpsp() {
 }
 
 function configure_lr-gpsp() {
-    # remove old install folder
-    rm -rf "$rootdir/$md_type/gpsp-libretro"
-
     mkRomDir "gba"
     ensureSystemretroconfig "gba"
 
-    delSystem "$md_id" "gba-gpsp-libretro"
-    addSystem 1 "$md_id" "gba" "$md_inst/gpsp_libretro.so"
+    local def=0
+    isPlatform "armv6" && def=1
+    addSystem $def "$md_id" "gba" "$md_inst/gpsp_libretro.so"
 }

@@ -48,7 +48,7 @@ function iniProcess() {
     fi
 
     if [[ "$cmd" == "del" ]]; then
-        [[ -n "$match" ]] && sed -i -e "\|$match|d" "$file"
+        [[ -n "$match" ]] && sed -i -e "\|$(sedQuote "$match")|d" "$file"
         return 0
     fi
 
@@ -60,7 +60,7 @@ function iniProcess() {
         echo "$replace" >> "$file"
     else
         # replace existing key-value pair
-        sed -i -e "s|$match|$replace|g" "$file"
+        sed -i -e "s|$(sedQuote "$match")|$(sedQuote "$replace")|g" "$file"
     fi
 }
 
@@ -89,13 +89,23 @@ function iniGet() {
         ini_value=""
         return 1
     fi
+
     local delim="$__ini_cfg_delim"
     local quote="$__ini_cfg_quote"
     # we strip the delimiter of spaces, so we can "fussy" match existing entries that have the wrong spacing
     local delim_strip=${delim// /}
     # if the stripped delimiter is empty - such as in the case of a space, just use the delimiter instead
     [[ -z "$delim_strip" ]] && delim_strip="$delim"
-    ini_value=$(sed -rn "s/^[[:space:]]*$key[[:space:]]*$delim_strip[[:space:]]*$quote(.+)$quote.*/\1/p" "$file")
+
+    # create a regexp to match the value based on whether we are looking for quotes or not
+    local value_m
+    if [[ -n "$quote" ]]; then
+        value_m="$quote*\([^$quote]*\)$quote*"
+    else
+        value_m="\(.*\)"
+    fi
+
+    ini_value="$(sed -n "s/^[ |\t]*$key[ |\t]*$delim_strip[ |\t]*$value_m/\1/p" "$file")"
 }
 
 # arg 1: key, arg 2: default value (optional - is 1 if not used)
@@ -108,11 +118,7 @@ function addAutoConf() {
        default="1"
     fi
 
-    if [ ! -f "$file" ]; then
-        echo "# this file can be used to enable/disable retropie autoconfiguration features" >> "$file"
-    fi
-
-    iniConfig " = " "" "$file"
+    iniConfig " = " '"' "$file"
     iniGet "$key"
     ini_value="${ini_value// /}"
     if [[ -z "$ini_value" ]]; then
@@ -120,13 +126,31 @@ function addAutoConf() {
     fi
 }
 
+# arg 1: key, arg 2: value
+function setAutoConf() {
+    local key="$1"
+    local value="$2"
+    local file="$configdir/all/autoconf.cfg"
+
+    iniConfig " = " '"' "$file"
+    iniSet "$key" "$value"
+}
+
 # arg 1: key
 function getAutoConf(){
     local key="$1"
 
-    iniConfig " = " "" "$configdir/all/autoconf.cfg"
+    iniConfig " = " '"' "$configdir/all/autoconf.cfg"
     iniGet "$key"
 
-    [[ "$ini_value" == "1" ]] && return 1
-    return 0
+    [[ "$ini_value" == "1" ]] && return 0
+    return 1
+}
+
+# escape backslashes and pipes for sed
+function sedQuote() {
+    local string="$1"
+    string="${string//\\/\\\\}"
+    string="${string//|/\\|}"
+    echo "$string"
 }

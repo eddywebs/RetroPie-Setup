@@ -10,8 +10,8 @@
 #
 
 function onstart_retroarch_joystick() {
-    local device_type=$1
-    local device_name=$2
+    local device_type="$1"
+    local device_name="$2"
 
     iniConfig " = " '"' "$configdir/all/retroarch.cfg"
     iniGet "input_joypad_driver"
@@ -19,6 +19,9 @@ function onstart_retroarch_joystick() {
     if [[ -z "$input_joypad_driver" ]]; then
         input_joypad_driver="udev"
     fi
+
+    _atebitdo_hack=0
+    getAutoConf "8bitdo_hack" && _atebitdo_hack=1
 
     iniConfig " = " "\"" "/tmp/tempconfig.cfg"
     iniSet "input_device" "$device_name"
@@ -170,16 +173,16 @@ function map_retroarch_joystick() {
         y)
             keys=("input_y")
             ;;
-        leftbottom)
+        leftbottom|leftshoulder)
             keys=("input_l" "input_load_state")
             ;;
-        rightbottom)
+        rightbottom|rightshoulder)
             keys=("input_r" "input_save_state")
             ;;
-        lefttop)
+        lefttop|lefttrigger)
             keys=("input_l2")
             ;;
-        righttop)
+        righttop|righttrigger)
             keys=("input_r2")
             ;;
         leftthumb)
@@ -242,21 +245,18 @@ function map_retroarch_joystick() {
                 ;;
             *)
                 key+="_btn"
+                value="$input_id"
+
                 # workaround for mismatched controller mappings
                 iniGet "input_driver"
                 if [[ "$ini_value" == "udev" ]]; then
-                    case "$device_name" in 
+                    case "$device_name" in
                         "8Bitdo FC30"*|"8Bitdo NES30"*|"8Bitdo SFC30"*|"8Bitdo SNES30"*|"8Bitdo Zero"*)
-                            if [[ "$input_id" -lt "17" ]]; then
-                                value=$(($input_id+11))
+                            if [[ "$_atebitdo_hack" -eq 1 ]]; then
+                                value="$((input_id+11))"
                             fi
                             ;;
-                        *)
-                            value="$input_id"
-                            ;;
                     esac
-                else
-                    value="$input_id"
                 fi
                 ;;
         esac
@@ -298,16 +298,16 @@ function map_retroarch_keyboard() {
         y)
             keys=("input_player1_y")
             ;;
-        leftbottom)
+        leftbottom|leftshoulder)
             keys=("input_player1_l")
             ;;
-        rightbottom)
+        rightbottom|rightshoulder)
             keys=("input_player1_r")
             ;;
-        lefttop)
+        lefttop|lefttrigger)
             keys=("input_player1_l2")
             ;;
-        righttop)
+        righttop|righttrigger)
             keys=("input_player1_r2")
             ;;
         leftthumb)
@@ -333,8 +333,8 @@ function map_retroarch_keyboard() {
 }
 
 function onend_retroarch_joystick() {
-    local device_type=$1
-    local device_name=$2
+    local device_type="$1"
+    local device_name="$2"
 
     # hotkey sanity check
     # remove hotkeys if there is no hotkey enable button

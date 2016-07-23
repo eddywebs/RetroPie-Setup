@@ -11,7 +11,8 @@
 
 rp_module_id="lr-catsfc"
 rp_module_desc="SNES emu - CATSFC based on Snes9x / NDSSFC / BAGSFC"
-rp_module_menus="2+"
+rp_module_help="ROM Extensions: .bin .smc .sfc .fig .swc .mgd .zip\n\nCopy your SNES roms to $romdir/snes"
+rp_module_section="main"
 
 function sources_lr-catsfc() {
     gitPullOrClone "$md_build" https://github.com/libretro/CATSFC-libretro.git
@@ -30,12 +31,8 @@ function install_lr-catsfc() {
 }
 
 function configure_lr-catsfc() {
-    # remove old install folder
-    rm -rf "$rootdir/$md_type/catsfc"
-
     mkRomDir "snes"
     ensureSystemretroconfig "snes"
 
-    delSystem "$md_id" "snes-catsfc"
     addSystem 0 "$md_id" "snes" "$md_inst/catsfc_libretro.so"
 }

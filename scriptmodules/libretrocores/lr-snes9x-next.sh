@@ -11,19 +11,18 @@
 
 rp_module_id="lr-snes9x-next"
 rp_module_desc="SNES emulator - Snes9x 1.52+ (optimised) port for libretro"
-rp_module_menus="2+"
+rp_module_help="ROM Extensions: .bin .smc .sfc .fig .swc .mgd .zip\n\nCopy your SNES roms to $romdir/snes"
+rp_module_section="main"
 rp_module_flags="!armv6"
 
 function sources_lr-snes9x-next() {
     gitPullOrClone "$md_build" https://github.com/libretro/snes9x-next
-    # some games crash when it is compiled with -O3
-    sed -i "s/CFLAGS += -O3/CFLAGS += -O2/" Makefile.libretro
 }
 
 function build_lr-snes9x-next() {
     make -f Makefile.libretro clean
     if isPlatform "neon"; then
-        make -f Makefile.libretro platform=armvneon
+        make -f Makefile.libretro platform=armvneon PREF_OPTIMIZATION=O2
     else
         make -f Makefile.libretro
     fi
@@ -33,21 +32,11 @@ function build_lr-snes9x-next() {
 function install_lr-snes9x-next() {
     md_ret_files=(
         'snes9x_next_libretro.so'
-        'docs/changes.txt'  
-        'docs/control-inputs.txt'  
-        'docs/controls.txt'  
-        'docs/gpl-2.0.txt'  
-        'docs/lgpl-2.1.txt'  
-        'docs/porting.html' 
-        'docs/snapshots.txt' 
-        'docs/snes9x-license.txt'
+        'docs'
     )
 }
 
 function configure_lr-snes9x-next() {
-    # remove old install folder
-    rm -rf "$rootdir/$md_type/snes9x-next"
-
     mkRomDir "snes"
     ensureSystemretroconfig "snes"
 

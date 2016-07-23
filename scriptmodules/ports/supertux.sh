@@ -11,10 +11,15 @@
  
 rp_module_id="supertux"
 rp_module_desc="SuperTux 2d scrolling platform"
-rp_module_menus="4+"
-rp_module_flags="nobin !mali"
- 
-function install_supertux() {
+rp_module_section="opt"
+rp_module_flags="!mali"
+
+function _update_hook_supertux() {
+    # to show as installed in retropie-setup 4.x
+    hasPackage supertux && mkdir -p "$md_inst"
+}
+
+function install_bin_supertux() {
     aptInstall supertux
 }
  

@@ -11,7 +11,7 @@
 
 rp_module_id="tyrquake"
 rp_module_desc="Quake 1 engine - TyrQuake port"
-rp_module_menus="4+"
+rp_module_section="opt"
 
 function depends_tyrquake() {
     getDepends libsdl2-dev lhasa
@@ -46,5 +46,5 @@ function configure_tyrquake() {
 
     mkRomDir "ports/quake"
 
-    download_quake_lr-tyrquake
+    [[ "$md_mode" == "install" ]] && game_data_lr-tyrquake
 }

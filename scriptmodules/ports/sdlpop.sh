@@ -11,8 +11,7 @@
  
 rp_module_id="sdlpop"
 rp_module_desc="SDLPoP - Port of Prince of Persia"
-rp_module_menus="4+"
-rp_module_flags=""
+rp_module_section="opt"
 
 function depends_sdlpop() {
     getDepends libsdl2-dev libsdl2-mixer-dev libsdl2-image-dev
@@ -44,8 +43,7 @@ function configure_sdlpop() {
 
     moveConfigFile "$md_inst/SDLPoP.ini" "$md_conf_root/$md_id/SDLPoP.ini"
 
-    if [[ ! -f "$md_conf_root/$md_id/SDLPoP.ini" ]]; then
-        cp -v "$md_inst/SDLPoP.ini.def" "$md_conf_root/$md_id/SDLPoP.ini"
-    fi
+    copyDefaultConfig "$md_inst/SDLPoP.ini.def" "$md_conf_root/$md_id/SDLPoP.ini"
+
     chown -R $user:$user "$md_conf_root/$md_id"
 }

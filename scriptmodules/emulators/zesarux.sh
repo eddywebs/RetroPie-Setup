@@ -11,7 +11,8 @@
 
 rp_module_id="zesarux"
 rp_module_desc="ZX Spectrum emulator ZEsarUX"
-rp_module_menus="4+"
+rp_module_help="ROM Extensions: .sna .szx .z80 .tap .tzx .gz .udi .mgt .img .trd .scl .dsk .zip\n\nCopy your ZX Spectrum roms to $romdir/zxspectrum"
+rp_module_section="opt"
 rp_module_flags="dispmanx !mali"
 
 function depends_zesarux() {
@@ -45,14 +46,7 @@ function configure_zesarux() {
 
     cat > "$romdir/zxspectrum/+Start ZEsarUX.sh" << _EOF_
 #!/bin/bash
-params="\$1"
-pushd "$md_inst/bin"
-if [[ "\$params" =~ \.sh$ ]]; then
-    ./zesarux
-else
-    ./zesarux "\$params"
-fi
-popd
+"$md_inst/bin/zesarux" "\$@"
 _EOF_
     chmod +x "$romdir/zxspectrum/+Start ZEsarUX.sh"
     chown $user:$user "$romdir/zxspectrum/+Start ZEsarUX.sh"
@@ -61,8 +55,9 @@ _EOF_
 
     local ao="alsa"
     isPlatform "x11" && ao="pulse"
-    if [[ ! -f "$md_conf_root/zxspectrum/.zesaruxrc" ]]; then
-        cat > "$md_conf_root/zxspectrum/.zesaruxrc" << _EOF_
+    local config="$(mktemp)"
+    
+    cat > "$config" << _EOF_
 ;ZEsarUX sample configuration file
 ;
 ;Lines beginning with ; or # are ignored
@@ -82,8 +77,9 @@ _EOF_
 ;Remap Fire Event. Uncomment and amend if you wish to change the default button 3.
 ;--joystickevent 3 Fire
 _EOF_
-        chown $user:$user "$md_conf_root/zxspectrum/.zesaruxrc"
-    fi
+
+    copyDefaultConfig "$config" "$md_conf_root/zxspectrum/.zesaruxrc"
+    rm "$config"
 
     if isPlatform "rpi"; then
         setDispmanx "$md_id" 1

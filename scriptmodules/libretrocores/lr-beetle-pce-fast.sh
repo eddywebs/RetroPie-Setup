@@ -9,31 +9,37 @@
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
-rp_module_id="lr-mednafen-pce-fast"
+rp_module_id="lr-beetle-pce-fast"
 rp_module_desc="PCEngine emu - Mednafen PCE Fast port for libretro"
-rp_module_menus="2+"
+rp_module_help="ROM Extensions: .pce .ccd .cue .zip\n\nCopy your PC Engine / TurboGrafx roms to $romdir/pcengine\n\nCopy the required BIOS file syscard3.pce to $biosdir"
+rp_module_section="main"
 
-function sources_lr-mednafen-pce-fast() {
+function _update_hook_lr-beetle-pce-fast() {
+    # move from old location and update emulators.cfg
+    if [[ -d "$rootdir/$md_type/lr-mednafen-pce-fast" ]]; then
+        mv "$rootdir/$md_type/lr-mednafen-pce-fast" "$md_inst"
+        sed -i "s/lr-mednafen-pce-fast/lr-beetle-pce-fast/g" "$configdir"/*/emulators.cfg
+    fi
+}
+
+function sources_lr-beetle-pce-fast() {
     gitPullOrClone "$md_build" https://github.com/libretro/beetle-pce-fast-libretro.git
 }
 
-function build_lr-mednafen-pce-fast() {
+function build_lr-beetle-pce-fast() {
     make clean
     make
     md_ret_require="$md_build/mednafen_pce_fast_libretro.so"
 }
 
-function install_lr-mednafen-pce-fast() {
+function install_lr-beetle-pce-fast() {
     md_ret_files=(
         'mednafen_pce_fast_libretro.so'
         'README.md'
     )
 }
 
-function configure_lr-mednafen-pce-fast() {
-    # remove old install folder
-    rm -rf "$rootdir/$md_type/mednafenpcefast"
-
+function configure_lr-beetle-pce-fast() {
     mkRomDir "pcengine"
     ensureSystemretroconfig "pcengine"
 

@@ -11,7 +11,8 @@
 
 rp_module_id="openmsx"
 rp_module_desc="MSX emulator OpenMSX"
-rp_module_menus="4+"
+rp_module_help="ROM Extensions: .rom .mx1 .mx2 .col .dsk .zip\n\nCopy your MSX/MSX2 roms to $romdir/msx"
+rp_module_section="opt"
 rp_module_flags="!mali"
 
 function depends_openmsx() {
@@ -41,5 +42,5 @@ function install_openmsx() {
 function configure_openmsx() {
     mkRomDir "msx"
 
-    addSystem 0 "$md_id" "msx" "$md_inst/bin/openmsx -cart %ROM%"
+    addSystem 0 "$md_id" "msx" "$md_inst/bin/openmsx %ROM%"
 }

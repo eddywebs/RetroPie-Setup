@@ -11,16 +11,16 @@
 
 rp_module_id="linapple"
 rp_module_desc="Apple 2 emulator LinApple"
-rp_module_menus="2+"
+rp_module_help="ROM Extensions: .dsk\n\nCopy your Apple 2 roms to $romdir/apple2"
+rp_module_section="opt"
 rp_module_flags="dispmanx !mali"
 
 function depends_linapple() {
-    getDepends libzip-dev libsdl1.2-dev libcurl4-openssl-dev
+    getDepends libzip-dev libsdl1.2-dev libsdl-image1.2-dev libcurl4-openssl-dev
 }
 
 function sources_linapple() {
-    wget -O- -q $__archive_url/linapple-src_2a.tar.bz2 | tar -xvj --strip-components=1
-    addLineToFile "#include <unistd.h>" "src/Timer.h"
+    gitPullOrClone "$md_build" https://github.com/dabonetn/linapple-pie.git
 }
 
 function build_linapple() {
@@ -30,49 +30,32 @@ function build_linapple() {
 }
 
 function install_linapple() {
-    mkdir -p "$md_inst/ftp/cache"
-    mkdir -p "$md_inst/images"
     md_ret_files=(
         'CHANGELOG'
         'INSTALL'
         'LICENSE'
         'linapple'
-        'charset40.bmp'
-        'font.bmp'
-        'icon.bmp'
-        'splash.bmp'
+        'linapple.conf'
         'Master.dsk'
         'README'
+        'README-linapple-pie'
     )
-    # install linapple.conf under another name as we will copy it
-    cp -v "$md_build/linapple.conf" "$md_inst/linapple.conf.sample"
 }
 
 function configure_linapple() {
     mkRomDir "apple2"
-
-    chown -R $user:$user "$md_inst"
-
-    rm -f "$romdir/apple2/Start.txt"
-    cat > "$romdir/apple2/+Start LinApple.sh" << _EOF_
-#!/bin/bash
-pushd "$md_inst"
-./linapple
-popd
-_EOF_
-    chmod +x "$romdir/apple2/+Start LinApple.sh"
-
     mkUserDir "$md_conf_root/apple2"
 
-    # if the user doesn't already have a config, we will copy the default.
-    if [[ ! -f "$md_conf_root/apple2/linapple.conf" ]]; then
-        cp -v "linapple.conf.sample" "$md_conf_root/apple2/linapple.conf"
-        iniConfig " = " "" "$md_conf_root/apple2/linapple.conf"
-        iniSet "Joystick 0" "1"
-        iniSet "Joystick 1" "1"
-    fi
-    ln -sf "$md_conf_root/apple2/linapple.conf"
-    chown $user:$user "$md_conf_root/apple2/linapple.conf"
+    moveConfigDir "$home/.linapple" "$md_conf_root/apple2"
 
-    addSystem 1 "$md_id" "apple2" "$romdir/apple2/+Start\ LinApple.sh" "Apple II" ".sh"
+    # copy default config/disk if user doesn't have them installed
+    local file
+    for file in Master.dsk linapple.conf; do
+        if [[ ! -f "$md_conf_root/apple2/$file" ]]; then
+            cp -v "$file" "$md_conf_root/apple2/$file"
+            chown $user:$user "$md_conf_root/apple2/$file"
+        fi
+    done
+
+    addSystem 1 "$md_id" "apple2" "$md_inst/linapple -1 %ROM%" "Apple II" ".po .dsk .nib"
 }

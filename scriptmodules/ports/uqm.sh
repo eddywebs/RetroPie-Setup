@@ -11,9 +11,14 @@
 
 rp_module_id="uqm"
 rp_module_desc="The Ur-Quan Masters (Port of DOS game Star Control 2)"
-rp_module_menus="4+"
-rp_module_flags="nobin !mali"
- 
+rp_module_section="opt"
+rp_module_flags="!mali"
+
+function _update_hook_uqm() {
+    # to show as installed in retropie-setup 4.x
+    hasPackage uqm && mkdir -p "$md_inst"
+}
+
 function depends_uqm() {
     ! hasPackage raspberrypi-bootloader && return 0
     getDepends debhelper devscripts libmikmod-dev libsdl1.2-dev libopenal-dev libsdl-image1.2-dev libogg-dev libvorbis-dev
@@ -35,8 +40,21 @@ function build_uqm() {
 }
  
 function install_uqm() {
+    cp -v *.deb "$md_inst"
     # uqm is missing on raspbian jessie
     if hasPackage raspberrypi-bootloader; then
+        dpkg -i *.deb
+        aptInstall uqm-content uqm-music uqm-voice
+    else
+        aptInstall uqm uqm-content uqm-music uqm-voice
+    fi
+}
+
+function install_bin_uqm() {
+    rp_installBin
+    # uqm is missing on raspbian jessie
+    if hasPackage raspberrypi-bootloader; then
+        cd "$md_inst"
         dpkg -i *.deb
         aptInstall uqm-content uqm-music uqm-voice
     else

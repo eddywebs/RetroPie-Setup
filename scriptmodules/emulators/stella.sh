@@ -11,11 +11,21 @@
 
 rp_module_id="stella"
 rp_module_desc="Atari2600 emulator STELLA"
-rp_module_menus="2+"
-rp_module_flags="dispmanx nobin !mali"
+rp_module_help="ROM Extensions: .a26 .bin .rom .zip .gz\n\nCopy your Atari 2600 roms to $romdir/atari2600"
+rp_module_section="opt"
+rp_module_flags="dispmanx !mali"
 
-function install_stella() {
+function _update_hook_stella() {
+    # to show as installed in retropie-setup 4.x
+    hasPackage stella && mkdir -p "$md_inst"
+}
+
+function install_bin_stella() {
     aptInstall stella
+}
+
+function remove_stella() {
+    aptRemove stella
 }
 
 function configure_stella() {
@@ -25,6 +35,5 @@ function configure_stella() {
         setDispmanx "$md_id" 1
     fi
 
-    delSystem "$md_id" "atari2600-stella"
     addSystem 0 "$md_id" "atari2600" "stella -maxres 320x240 %ROM%"
 }

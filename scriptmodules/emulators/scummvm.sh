@@ -11,7 +11,8 @@
 
 rp_module_id="scummvm"
 rp_module_desc="ScummVM"
-rp_module_menus="2+"
+rp_module_help="Copy your ScummVM roms to $romdir/scummvm"
+rp_module_section="opt"
 rp_module_flags="!mali"
 
 function depends_scummvm() {
@@ -45,7 +46,7 @@ _EOF_
 }
 
 function build_scummvm() {
-    local params=(--enable-all-engines --enable-vkeybd --enable-release --disable-debug --enable-keymapper --prefix="$md_inst")
+    local params=(--enable-all-engines --enable-vkeybd --enable-release --disable-debug --enable-keymapper --disable-eventrecorder --prefix="$md_inst")
     isPlatform "rpi" && params+=(--host=raspberrypi)
     # stop scummvm using arm-linux-gnueabihf-g++ which is v4.6 on wheezy and doesn't like rpi2 cpu flags
     if isPlatform "rpi"; then
@@ -69,7 +70,9 @@ function configure_scummvm() {
     mkRomDir "scummvm"
 
     local dir
+    mkUserDir "$home/.local"
     for dir in .config .local/share .cache; do
+        mkUserDir "$home/$dir"
         moveConfigDir "$home/$dir/scummvm" "$md_conf_root/scummvm"
     done
 
@@ -78,7 +81,6 @@ function configure_scummvm() {
     cat > "$romdir/scummvm/+Start ScummVM.sh" << _EOF_
 #!/bin/bash
 game="\$1"
-[[ "\$game" =~ ^\+ ]] && game=""
 pushd "$romdir/scummvm" >/dev/null
 $md_inst/bin/scummvm --fullscreen --joystick=0 --extrapath="$md_inst/extra" \$game
 while read line; do

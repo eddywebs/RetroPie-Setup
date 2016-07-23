@@ -10,8 +10,8 @@
 #
 
 rp_module_id="retroarch"
-rp_module_desc="RetroArch"
-rp_module_menus="2+"
+rp_module_desc="RetroArch - frontend to the libretro emulator cores - required by all lr-* emulators"
+rp_module_section="core"
 
 function depends_retroarch() {
     local depends=(libudev-dev libxkbcommon-dev libsdl2-dev)
@@ -32,9 +32,6 @@ function depends_retroarch() {
 
 function sources_retroarch() {
     gitPullOrClone "$md_build" https://github.com/libretro/RetroArch.git
-    gitPullOrClone "$md_build/overlays" https://github.com/libretro/common-overlays.git
-    isPlatform "rpi" && gitPullOrClone "$md_build/shader" https://github.com/RetroPie/common-shaders.git rpi
-    isPlatform "x11" && gitPullOrClone "$md_build/shader" https://github.com/libretro/common-shaders.git
     # disable the search dialog
     sed -i 's|menu_input_ctl(MENU_INPUT_CTL_SEARCH_START|//menu_input_ctl(MENU_INPUT_CTL_SEARCH_START|g' menu/menu_entry.c
     if isPlatform "mali"; then
@@ -58,28 +55,46 @@ function build_retroarch() {
 
 function install_retroarch() {
     make install
-    mkdir -p "$md_inst/"{shader,assets,overlays}
-    cp -v -a "$md_build/shader/"* "$md_inst/shader/"
-    cp -v -a "$md_build/overlays/"* "$md_inst/overlays/"
-    chown $user:$user -R "$md_inst/"{shader,assets,overlays}
     md_ret_files=(
         'retroarch.cfg'
     )
 }
 
+function update_shaders_retroarch() {
+    local branch=""
+    isPlatform "rpi" && branch="rpi"
+    # remove if not git repository for fresh checkout
+    [[ ! -d "$md_inst/shader/.git" ]] && rm -rf "$md_inst/shader"
+    gitPullOrClone "$md_inst/shader" https://github.com/RetroPie/common-shaders.git "$branch"
+}
+
+function update_overlays_retroarch() {
+    # remove if not a git repository for fresh checkout
+    [[ ! -d "$md_inst/overlays/.git" ]] && rm -rf "$md_inst/overlays"
+    gitPullOrClone "$md_inst/overlays" https://github.com/libretro/common-overlays.git
+}
+
+function remove_shaders_retroarch() {
+    rm -rf "$md_inst/shader"
+}
+
+function remove_overlays_retroarch() {
+    rm -rf "$md_inst/overlays"
+}
+
 function configure_retroarch() {
+    [[ "$md_mode" == "remove" ]] && return
+
     mkUserDir "$configdir/all/retroarch-joypads"
 
-    local config="$configdir/all/retroarch.cfg"
-    # if the user has an existing config we will not overwrite it, but instead copy the
-    # default configuration to retroarch.cfg.rp-dist so any new options can be manually
-    # copied across as needed without destroying users changes
-    if [[ -f "$configdir/all/retroarch.cfg" ]]; then
-        config="$configdir/all/retroarch.cfg.rp-dist"
-        cp -v "$md_inst/retroarch.cfg" "$config"
-    else
-        cp -v "$md_inst/retroarch.cfg" "$config"
-    fi
+    mkUserDir "$md_inst/assets"
+
+    # install shaders by default
+    update_shaders_retroarch
+
+    local config="$(mktemp)"
+
+    cp "$md_inst/retroarch.cfg" "$config"
 
     # configure default options
     iniConfig " = " '"' "$config"
@@ -95,16 +110,10 @@ function configure_retroarch() {
     iniSet "overlay_directory" "$md_inst/overlays"
     isPlatform "x11" && iniSet "video_fullscreen" "true"
 
-    # set default render resolution to 640x480 for rpi1 if video output res is higher
-    local tvservice="/opt/vc/bin/tvservice"
-    if isPlatform "rpi1" && [[ -f "$tvservice" ]]; then
-        # calculate w*h
-        local pixels="$(($(tvservice -s | cut -d"," -f2 | grep -oE "[0-9]+x[0-9]+" | sed "s/x/*/")))"
-        # if number of pixels > 640x480 we will lower default render res to 640x480
-        if [[ "$pixels" -gt 307200 ]]; then
-            iniSet "video_fullscreen_x" "640"
-            iniSet "video_fullscreen_y" "480"
-        fi
+    # set default render resolution to 640x480 for rpi1
+    if isPlatform "rpi1"; then
+        iniSet "video_fullscreen_x" "640"
+        iniSet "video_fullscreen_y" "480"
     fi
 
     # enable hotkey ("select" button)
@@ -145,5 +154,50 @@ function configure_retroarch() {
     iniSet "auto_remaps_enable" "true"
     iniSet "input_joypad_driver" "udev"
 
-    chown $user:$user "$config"
+    copyDefaultConfig "$config" "$configdir/all/retroarch.cfg"
+    rm "$config"
+
+    # remapping hack for old 8bitdo firmware
+    addAutoConf "8bitdo_hack" 1
+}
+
+function gui_retroarch() {
+    while true; do
+        local options=()
+        local dir
+        local name
+        local i=1
+        for name in shaders overlays; do
+            dir="$name"
+            [[ "$dir" == "shaders" ]] && dir="shader"
+            if [[ -d "$md_inst/$dir/.git" ]]; then
+                options+=("$i" "Manage $name (installed)")
+            else
+                options+=("$i" "Manage $name (not installed)")
+            fi
+            ((i++))
+        done
+        local cmd=(dialog --backtitle "$__backtitle" --menu "Choose an option" 22 76 16)
+        local choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+        [[ -z "$choice" ]] && break
+        [[ "$choice" -eq 1 ]] && dir="shaders"
+        [[ "$choice" -eq 2 ]] && dir="overlays"
+        options=(1 "Install/Update $dir" 2 "Uninstall $dir" )
+        cmd=(dialog --backtitle "$__backtitle" --menu "Choose an option for $dir" 12 40 06)
+        choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+
+        case "$choice" in
+            1)
+                "update_${dir}_retroarch"
+                ;;
+            2)
+                "remove_${dir}_retroarch"
+                ;;
+            *)
+                exit
+                continue
+                ;;
+
+        esac
+    done
 }

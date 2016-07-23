@@ -11,7 +11,7 @@
 
 rp_module_id="smw"
 rp_module_desc="Super Mario War"
-rp_module_menus="2+"
+rp_module_section="opt"
 rp_module_flags="!mali"
 
 function depends_smw() {
@@ -34,4 +34,6 @@ function install_smw() {
 
 function configure_smw() {
     addPort "$md_id" "smw" "Super Mario War" "$md_inst/smw"
+
+    moveConfigFile "$home/.smw.options.bin" "$md_conf_root/smw/.smw.options.bin"
 }

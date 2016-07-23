@@ -11,7 +11,8 @@
 
 rp_module_id="reicast"
 rp_module_desc="Dreamcast emulator Reicast"
-rp_module_menus="2+"
+rp_module_help="ROM Extensions: .cdi .gdi\n\nCopy your Dremcast roms to $romdir/dreamcast\n\nCopy the required BIOS files dc_boot.bin and dc_flash.bin to $biosdir"
+rp_module_section="opt"
 rp_module_flags="!armv6 !mali"
 
 function depends_reicast() {
@@ -27,6 +28,7 @@ function sources_reicast() {
     else
         gitPullOrClone "$md_build" https://github.com/RetroPie/reicast-emulator.git retropie
     fi
+    sed -i "s/CXXFLAGS += -fno-rtti -fpermissive -fno-operator-names/CXXFLAGS += -fno-rtti -fpermissive -fno-operator-names -D_GLIBCXX_USE_CXX11_ABI=0/g" shell/linux/Makefile
 }
 
 function build_reicast() {
@@ -83,6 +85,4 @@ function configure_reicast() {
     addSystem 1 "$md_id" "dreamcast" "CON:$md_inst/bin/reicast.sh OSS %ROM%"
 
     addAutoConf reicast_input 1
-
-    __INFMSGS+=("You need to copy the Dreamcast BIOS files (dc_boot.bin and dc_flash.bin) to the folder $biosdir to boot the Dreamcast emulator.")
 }

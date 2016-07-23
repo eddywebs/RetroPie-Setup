@@ -11,7 +11,8 @@
 
 rp_module_id="hatari"
 rp_module_desc="Atari emulator Hatari"
-rp_module_menus="2+"
+rp_module_help="ROM Extensions: .st .stx .img .rom .raw .ipf .ctr\n\nCopy your Hatari roms to $romdir/atarist"
+rp_module_section="opt"
 rp_module_flags="!mali"
 
 function depends_hatari() {
@@ -72,9 +73,6 @@ function configure_hatari() {
 
     # move any old configs to new location
     moveConfigDir "$home/.hatari" "$md_conf_root/atarist"
-
-    delSystem "$md_id" "atariststefalcon"
-    delSystem "$md_id" "atarist"
 
     addSystem 1 "$md_id-fast" "atarist" "$md_inst/bin/hatari --zoom 1 --compatible 0 --timer-d 1 -w --borders 0 %ROM%"
     addSystem 0 "$md_id-fast-borders" "atarist" "$md_inst/bin/hatari --zoom 1 --compatible 0 --timer-d 1 -w --borders 1 %ROM%"

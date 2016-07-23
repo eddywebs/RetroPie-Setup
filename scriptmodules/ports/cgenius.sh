@@ -11,11 +11,10 @@
 
 rp_module_id="cgenius"
 rp_module_desc="Commander Genius - Modern Interpreter for the Commander Keen Games (Vorticon and Galaxy Games)"
-rp_module_menus="4+"
-rp_module_flags=""
+rp_module_section="exp"
 
 function depends_cgenius() {
-    getDepends build-essential libvorbis-dev libogg-dev libsdl2-dev libsdl2-image-dev libgl1-mesa-dev libboost1.55-dev libboost-dev 
+    getDepends build-essential libvorbis-dev libogg-dev libsdl2-dev libsdl2-image-dev libgl1-mesa-dev libboost-dev
 }
 
 function sources_cgenius() {

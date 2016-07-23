@@ -10,8 +10,8 @@
 #
 
 function onstart_emulationstation_joystick() {
-    local device_type=$1
-    local device_name=$2
+    local device_type="$1"
+    local device_name="$2"
 
     local es_conf="$home/.emulationstation/es_input.cfg"
 
@@ -48,10 +48,10 @@ function map_emulationstation_joystick() {
 
     local key
     case "$input_name" in
-        leftbottom)
+        leftbottom|leftshoulder)
             key="pageup"
             ;;
-        rightbottom)
+        rightbottom|rightshoulder)
             key="pagedown"
             ;;
         up|right|down|left|start|select)
@@ -59,11 +59,11 @@ function map_emulationstation_joystick() {
             ;;
         a)
             key="$input_name"
-            getAutoConf es_swap_a_b || key="b"
+            getAutoConf es_swap_a_b && key="b"
             ;;
         b)
             key="$input_name"
-            getAutoConf es_swap_a_b || key="a"
+            getAutoConf es_swap_a_b && key="a"
             ;;
         *)
             return

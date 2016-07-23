@@ -11,11 +11,12 @@
 
 rp_module_id="coolcv"
 rp_module_desc="CoolCV Colecovision Emulator"
-rp_module_menus="4+"
+rp_module_help="ROM Extensions: .bin .col .rom .zip\n\nCopy your Colecovision roms to $romdir/coleco"
+rp_module_section="opt"
 rp_module_flags="!x86 !x11 !mali"
 
-function install_coolcv() {    
-    wget -O- -q $__archive_url/coolcv.tar.gz | tar -xvz -C "$md_inst"
+function install_bin_coolcv() {
+    wget -O- -q "$__archive_url/coolcv.tar.gz" | tar -xvz -C "$md_inst"
 }
 
 function configure_coolcv() {

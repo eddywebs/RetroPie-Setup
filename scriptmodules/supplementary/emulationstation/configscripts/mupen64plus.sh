@@ -10,8 +10,8 @@
 #
 
 function onstart_mupen64plus_joystick() {
-    local device_type=$1
-    local device_name=$2
+    local device_type="$1"
+    local device_name="$2"
 
     # write temp file header
     echo "; ${device_name}_START " > /tmp/mp64tempconfig.cfg
@@ -65,13 +65,13 @@ function map_mupen64plus_joystick() {
         x)
             keys=("C Button U")
             ;;
-        leftbottom)
+        leftbottom|leftshoulder)
             keys=("Z Trig")
             ;;
-        rightbottom)
+        rightbottom|rightshoulder)
             keys=("R Trig")
             ;;
-        lefttop)
+        lefttop|lefttrigger)
             keys=("L Trig")
             ;;
         start)
@@ -181,8 +181,8 @@ function map_mupen64plus_joystick() {
 }
 
 function onend_mupen64plus_joystick() {
-    local device_type=$1
-    local device_name=$2
+    local device_type="$1"
+    local device_name="$2"
 
     local bind
     local axis

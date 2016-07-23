@@ -11,19 +11,19 @@
 
 rp_module_id="lr-ppsspp"
 rp_module_desc="PlayStation Portable emu - PPSSPP port for libretro"
-rp_module_menus="2+"
+rp_module_help="ROM Extensions: .iso .pbp .cso\n\nCopy your PlayStation Portable roms to $romdir/psp"
+rp_module_section="main"
 rp_module_flags="!armv6"
 
 function depends_lr-ppsspp() {
     local depends=()
     isPlatform "rpi" && depends+=(libraspberrypi-dev)
-    [[ "$__default_gcc_version" == "4.7" ]] && depends+=(gcc-4.8 g++-4.8)
     getDepends "${depends[@]}"
 }
 
 function sources_lr-ppsspp() {
     if isPlatform "rpi"; then
-        gitPullOrClone "$md_build" https://github.com/joolswills/ppsspp.git libretro_rpi_fix
+        gitPullOrClone "$md_build" https://github.com/RetroPie/ppsspp.git libretro_rpi_fix
     else
         gitPullOrClone "$md_build" https://github.com/libretro/libretro-ppsspp.git
     fi
@@ -41,11 +41,7 @@ function build_lr-ppsspp() {
     make -C libretro clean
     local params=()
     isPlatform "rpi" && params+=("platform=rpi2")
-    if [[ "$__default_gcc_version" == "4.7" ]]; then
-        make -C libretro "${params[@]}" CC=gcc-4.8 CXX=g++-4.8
-    else
-        make -C libretro "${params[@]}"
-    fi
+    make -C libretro "${params[@]}"
     md_ret_require="$md_build/libretro/ppsspp_libretro.so"
 }
 

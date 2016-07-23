@@ -29,9 +29,10 @@ function setup_env() {
     fi
 
     # set location of binary downloads
-    [[ "$__has_binaries" -eq 1 ]] && __binary_url="http://downloads.petrockblock.com/retropiebinaries/$__raspbian_name/$__platform"
+    __binary_host="files.retropie.org.uk"
+    [[ "$__has_binaries" -eq 1 ]] && __binary_url="http://$__binary_host/binaries/$__raspbian_name/$__platform"
 
-    __archive_url="http://downloads.petrockblock.com/retropiearchives"
+    __archive_url="http://files.retropie.org.uk/archives"
 
     # -pipe is faster but will use more memory - so let's only add it if we have more thans 256M free ram.
     [[ $__memory_phys -ge 256 ]] && __default_cflags+=" -pipe"
@@ -43,7 +44,7 @@ function setup_env() {
 
     # test if we are in a chroot
     if [[ "$(stat -c %d:%i /)" != "$(stat -c %d:%i /proc/1/root/.)" ]]; then
-        [[ -n "$__qemu_cpu" ]] && export QEMU_CPU=$__qemu_cpu
+        [[ -z "$QEMU_CPU" && -n "$__qemu_cpu" ]] && export QEMU_CPU=$__qemu_cpu
         __chroot=1
     else
         __chroot=0
@@ -66,6 +67,7 @@ function get_os_version() {
                 7)
                     __raspbian_ver=7
                     __raspbian_name="wheezy"
+                    __has_binaries=0
                     return
                     ;;
                 8)
@@ -76,7 +78,7 @@ function get_os_version() {
             esac
         else
             case "$ver" in
-                jessie/sid)
+                jessie/sid|stretch/sid)
                     __raspbian_ver=8
                     __raspbian_name="ubuntu"
                     return
@@ -91,14 +93,18 @@ function get_os_version() {
 }
 
 function get_default_gcc() {
-    case $__raspbian_ver in
-        7)
-            __default_gcc_version="4.7"
-            ;;
-        *)
-            __default_gcc_version=""
-            ;;
-    esac
+    if [[ -z "$__default_gcc_version" ]]; then
+        case $__raspbian_ver in
+            7)
+                __default_gcc_version="4.8"
+                ;;
+            8)
+                if [[ "$__raspbian_name" == "jessie" ]]; then
+                    __default_gcc_version="4.9"
+                fi
+                ;;
+        esac
+    fi
 }
 
 # gcc version helper
@@ -160,6 +166,9 @@ function get_platform() {
             ODROIDC)
                 __platform="odroid-c1"
                 ;;
+            "Freescale i.MX6 Quad/DualLite (Device Tree)")
+                __platform="imx6" 
+                ;;
             *)
                 case $architecture in
                     i686|x86_64|amd64)
@@ -191,7 +200,7 @@ function platform_rpi1() {
 }
 
 function platform_rpi2() {
-    __default_cflags="-O2 -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard"
+    __default_cflags="-O3 -mcpu=cortex-a7 -mfpu=neon-vfpv4 -mfloat-abi=hard -funsafe-math-optimizations"
     __default_asflags=""
     __default_makeflags="-j2"
     __platform_flags="arm armv7 neon rpi"
@@ -204,7 +213,7 @@ function platform_rpi2() {
 # note the rpi3 currently uses the rpi2 binaries - for ease of maintenance - rebuilding from source
 # could improve performance with the compiler options below but needs further testing
 function platform_rpi3() {
-    __default_cflags="-O2 -mcpu=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard"
+    __default_cflags="-O3 -mcpu=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard -funsafe-math-optimizations"
     __default_asflags=""
     __default_makeflags="-j2"
     __platform_flags="arm armv8 neon rpi"
@@ -217,7 +226,7 @@ function platform_rpi3-64() {
 }
 
 function platform_odroid-c1() {
-    __default_cflags="-O2 -mcpu=cortex-a5 -mfpu=neon-vfpv4 -mfloat-abi=hard"
+    __default_cflags="-O3 -mcpu=cortex-a5 -mfpu=neon-vfpv4 -mfloat-abi=hard -funsafe-math-optimizations"
     __default_asflags=""
     __default_makeflags="-j2"
     __platform_flags="arm armv7 neon mali"
@@ -226,7 +235,7 @@ function platform_odroid-c1() {
 }
 
 function platform_x86() {
-    __default_cflags="-O2 -march=native"
+    __default_cflags="-O3 -march=native"
     __default_asflags=""
     __default_makeflags="-j$(nproc)"
     __platform_flags="x11"
@@ -234,7 +243,7 @@ function platform_x86() {
 }
 
 function platform_generic-x11() {
-    __default_cflags="-O2"
+    __default_cflags="-O3"
     __default_asflags=""
     __default_makeflags="-j$(nproc)"
     __platform_flags="x11"
@@ -242,9 +251,17 @@ function platform_generic-x11() {
 }
 
 function platform_armv7-mali() {
-    __default_cflags="-O2 -march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard"
+    __default_cflags="-O3 -march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard -funsafe-math-optimizations"
     __default_asflags=""
     __default_makeflags="-j$(nproc)"
     __platform_flags="arm armv7 neon mali"
+    __has_binaries=0
+}
+
+function platform_imx6() {
+    __default_cflags="-O3 -march=armv7-a -mfpu=neon -mtune=cortex-a9 -mfloat-abi=hard -funsafe-math-optimizations"
+    __default_asflags=""
+    __default_makeflags="-j 2"
+    __platform_flags="arm armv7 neon"
     __has_binaries=0
 }

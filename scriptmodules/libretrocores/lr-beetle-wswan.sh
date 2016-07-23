@@ -9,27 +9,36 @@
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
-rp_module_id="lr-mednafen-wswan"
+rp_module_id="lr-beetle-wswan"
 rp_module_desc="Wonderswan emu - Mednafen WonderSwan core port for libretro"
-rp_module_menus="2+"
+rp_module_help="ROM Extensions: .ws .wsc .zip\n\nCopy your Wonderswan roms to $romdir/wonderswan\n\nCopy your Wonderswan Color roms to $romdir/wonderswancolor"
+rp_module_section="opt"
 
-function sources_lr-mednafen-wswan() {
+function _update_hook_lr-beetle-wswan() {
+    # move from old location and update emulators.cfg
+    if [[ -d "$rootdir/$md_type/lr-mednafen-wswan" ]]; then
+        mv "$rootdir/$md_type/lr-mednafen-wswan" "$md_inst"
+        sed -i "s/lr-mednafen-wswan/lr-beetle-wswan/g" "$configdir"/*/emulators.cfg
+    fi
+}
+
+function sources_lr-beetle-wswan() {
     gitPullOrClone "$md_build" https://github.com/libretro/beetle-wswan-libretro.git
 }
 
-function build_lr-mednafen-wswan() {
+function build_lr-beetle-wswan() {
     make clean
     make
     md_ret_require="$md_build/mednafen_wswan_libretro.so"
 }
 
-function install_lr-mednafen-wswan() {
+function install_lr-beetle-wswan() {
     md_ret_files=(
         'mednafen_wswan_libretro.so'
     )
 }
 
-function configure_lr-mednafen-wswan() {
+function configure_lr-beetle-wswan() {
     mkRomDir "wonderswan"
     mkRomDir "wonderswancolor"
     ensureSystemretroconfig "wonderswan"

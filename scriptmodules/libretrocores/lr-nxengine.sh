@@ -11,7 +11,8 @@
 
 rp_module_id="lr-nxengine"
 rp_module_desc="Cave Story engine clone - NxEngine port for libretro"
-rp_module_menus="2+"
+rp_module_help="Copy the original Cave Story game files to $romdir/ports/CaveStory so you have the file $romdir/ports/CaveStory/Doukutsu.exe present."
+rp_module_section="opt"
 
 function sources_lr-nxengine() {
     gitPullOrClone "$md_build" https://github.com/libretro/nxengine-libretro.git
@@ -35,18 +36,11 @@ function configure_lr-nxengine() {
     addPort "$md_id" "cavestory" "Cave Story" "$emudir/retroarch/bin/retroarch -L $md_inst/nxengine_libretro.so --config $md_conf_root/cavestory/retroarch.cfg $romdir/ports/CaveStory/Doukutsu.exe" << _EOF_
 #!/bin/bash
 if [[ ! -f "$romdir/ports/CaveStory/Doukutsu.exe" ]]; then
-    dialog --msgbox "$msg" 22 76
+    dialog --msgbox "$md_help" 22 76
 else
     "$rootdir/supplementary/runcommand/runcommand.sh" 0 _PORT_ cavestory
 fi
 _EOF_
 
     ensureSystemretroconfig "ports/cavestory"
-
-    local msg="You need the original Cave Story game files to use $md_id. Please unpack the game to $romdir/ports/CaveStory so you have the file $romdir/ports/CaveStory/Doukutsu.exe present."
-
-    __INFMSGS+=("$msg")
-
-    # remove old install folder
-    rm -rf "$rootdir/$md_type/cavestory"
 }

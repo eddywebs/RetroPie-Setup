@@ -11,7 +11,8 @@
 
 rp_module_id="pisnes"
 rp_module_desc="SNES emulator PiSNES"
-rp_module_menus="2+"
+rp_module_help="ROM Extensions: .bin .smc .sfc .fig .swc .mgd .zip\n\nCopy your SNES roms to $romdir/snes"
+rp_module_section="opt"
 rp_module_flags="!x86 !mali"
 
 function depends_pisnes() {
@@ -38,7 +39,7 @@ function install_pisnes() {
         'roms'
         'skins'
         'snes9x'
-        'snes9x.cfg'
+        'snes9x.cfg.template'
         'snes9x.gui'
     )
 }
@@ -46,8 +47,9 @@ function install_pisnes() {
 function configure_pisnes() {
     mkRomDir "snes"
 
-    setDispmanx "$md_id" 1
+    moveConfigFile "$md_inst/snes9x.cfg" "$md_conf_root/snes/snes9x.cfg"
 
-    delSystem "$md_id" "snes-pisnes"
+    copyDefaultConfig "$md_inst/snes9x.cfg.template" "$md_conf_root/snes/snes9x.cfg"
+
     addSystem 0 "$md_id" "snes" "$md_inst/snes9x %ROM%"
 }

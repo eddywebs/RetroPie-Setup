@@ -11,22 +11,50 @@
 
 rp_module_id="kodi"
 rp_module_desc="Kodi - Open source home theatre software"
-rp_module_menus="4+"
-rp_module_flags="nobin !mali"
+rp_module_section="opt"
+rp_module_flags="!mali"
 
-function install_kodi() {
-    # remove old repository - we will use Kodi from the Raspbian repositories
-    rm -f /etc/apt/sources.list.d/mene.list
+function _update_hook_kodi() {
+    # to show as installed in retropie-setup 4.x
+    hasPackage kodi && mkdir -p "$md_inst"
+}
+
+function depends_kodi() {
+    if isPlatform "rpi"; then
+        if [[ "$md_mode" == "install" ]]; then
+            # remove old repository
+            rm -f /etc/apt/sources.list.d/mene.list
+            echo "deb http://dl.bintray.com/pipplware/dists/jessie/main/binary/ ./" >/etc/apt/sources.list.d/pipplware.list
+            # additional repository with armv7/8 binaries
+            if ! isPlatform "armv6"; then
+                echo "deb http://dl.bintray.com/pipplware/dists/jessie/armv7/binary/ ./" >>/etc/apt/sources.list.d/pipplware.list
+            fi
+            wget -q -O- http://pipplware.pplware.pt/pipplware/key.asc | apt-key add - >/dev/null
+        else
+            rm -f /etc/apt/sources.list.d/pipplware.list
+            apt-key del 4096R/BAA567BB >/dev/null
+        fi
+    fi
+}
+
+function install_bin_kodi() {
+    # force aptInstall to get a fresh list before installing
+    __apt_update=0
     aptInstall kodi
 }
 
+function remove_kodi() {
+    aptRemove kodi
+    rp_callModule kodi depends remove
+}
+
 function configure_kodi() {
+    # remove old directLaunch entry
+    delSystem "$md_id" "kodi"
+
+    addPort "$md_id" "kodi" "Kodi" "kodi"
+
     if [[ ! -f /etc/udev/rules.d/99-input.rules ]]; then
         echo 'SUBSYSTEM=="input", GROUP="input", MODE="0660"' > /etc/udev/rules.d/99-input.rules
     fi
-
-    # we launch directly rather than from roms section now
-    rm -f "$romdir/ports/Kodi.sh"
-
-    addDirectLaunch "$md_id" "Kodi" "kodi-standalone"
 }

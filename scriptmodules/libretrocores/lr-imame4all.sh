@@ -11,8 +11,8 @@
 
 rp_module_id="lr-imame4all"
 rp_module_desc="Arcade emu - iMAME4all (based on MAME 0.37b5) port for libretro"
-rp_module_menus="2+"
-rp_module_flags=""
+rp_module_help="ROM Extension: .zip\n\nCopy your iMAME4all roms to either $romdir/mame-mame4all or\n$romdir/arcade"
+rp_module_section="main"
 
 function sources_lr-imame4all() {
     gitPullOrClone "$md_build" https://github.com/libretro/mame2000-libretro.git
@@ -34,12 +34,6 @@ function install_lr-imame4all() {
 }
 
 function configure_lr-imame4all() {
-    # remove old install folder
-    rm -rf "$rootdir/$md_type/mamelibretro"
-
-    # remove old core library
-    rm -f "$md_inst/libretro.so"
-
     mkRomDir "arcade"
     mkRomDir "mame-mame4all"
     ensureSystemretroconfig "arcade"

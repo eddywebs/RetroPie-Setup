@@ -11,7 +11,8 @@
 
 rp_module_id="openbor"
 rp_module_desc="OpenBOR - Beat 'em Up Game Engine"
-rp_module_menus="4+"
+rp_module_help="OpenBOR games need to be extracted to function properly. Place your pak files in $romdir/ports/openbor and then run $rootdir/ports/openbor/extract.sh. When the script is done, your original pak files will be found in $romdir/ports/openbor/originals and can be deleted."
+rp_module_section="exp"
 rp_module_flags="!mali"
 
 function depends_openbor() {
@@ -75,6 +76,4 @@ _EOF_
     done
 
     ln -snf "$romdir/ports/$md_id" "$md_inst/Paks"
-
-     __INFMSGS+=("OpenBOR games need to be extracted to function properly. Place your pak files in $romdir/ports/$md_id/ and then run $md_inst/extract.sh. When the script is done, your original pak files will be found in $romdir/ports/$md_id/originals/ and can be deleted.")
 }

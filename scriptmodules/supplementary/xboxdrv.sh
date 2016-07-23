@@ -11,7 +11,7 @@
 
 rp_module_id="xboxdrv"
 rp_module_desc="Xbox / Xbox 360 gamepad driver"
-rp_module_menus="3+gui"
+rp_module_section="driver"
 
 function def_controllers_xboxdrv() {
     echo "2"
@@ -22,7 +22,6 @@ function def_deadzone_xboxdrv() {
 }
 
 function depends_xboxdrv() {
-    hasPackage xboxdrv && apt-get remove -y xboxdrv
     getDepends libboost-dev libusb-1.0-0-dev libudev-dev libx11-dev scons pkg-config x11proto-core-dev libdbus-glib-1-dev
 }
 

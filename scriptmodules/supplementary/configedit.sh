@@ -11,8 +11,7 @@
 
 rp_module_id="configedit"
 rp_module_desc="Edit RetroPie/RetroArch configurations"
-rp_module_menus="3+"
-rp_module_flags="nobin"
+rp_module_section="config"
 
 function _video_fullscreen_configedit() {
     local mode="$1"
@@ -152,8 +151,8 @@ function advanced_configedit() {
         'video_scale_integer true false'
         'video_aspect_ratio_auto true false'
         'video_aspect_ratio _string_'
-        'video_allow_rotate _string_'
-        'video_rotation _string_'
+        'video_allow_rotate true false'
+        'video_rotation 0 1 2 3'
         'custom_viewport_width _string_'
         'custom_viewport_height _string_'
         'custom_viewport_x _string_'
@@ -171,6 +170,7 @@ function advanced_configedit() {
         'input_player6_analog_dpad_mode _id_ disabled left-stick right-stick'
         'input_player7_analog_dpad_mode _id_ disabled left-stick right-stick'
         'input_player8_analog_dpad_mode _id_ disabled left-stick right-stick'
+        'game_specific_options true false'
     )
 
     local ini_descs=(
@@ -209,6 +209,7 @@ function advanced_configedit() {
         'Allow analogue sticks to be used as a d-pad - 0 = disabled, 1 = left stick, 2 = right stick'
         'Allow analogue sticks to be used as a d-pad - 0 = disabled, 1 = left stick, 2 = right stick'
         'Allow analogue sticks to be used as a d-pad - 0 = disabled, 1 = left stick, 2 = right stick'
+        'Game specific core options in retroarch-core-options.cfg, rather than for all games via that core.'
     )
 
     iniFileEditor " = " '"' "$config"
@@ -229,7 +230,7 @@ function choose_config_configedit() {
         configs+=("$config")
         options+=("$i" "$config")
         ((i++))
-    done < <(find "$path" -type f -regex "$include" ! -regex "$exclude" | sort)
+    done < <(find "$path" -type f -regex "$include" ! -regex "$exclude" ! -regex ".*/downloaded_images/.*" | sort)
     local choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
     if [[ -n "$choice" ]]; then
         echo "${configs[choice]}"
@@ -309,7 +310,7 @@ function advanced_menu_configedit() {
     done
 }
 
-function configure_configedit() {
+function gui_configedit() {
     while true; do
         local cmd=(dialog --backtitle "$__backtitle" --menu "Choose an option" 22 76 16)
         local options=(

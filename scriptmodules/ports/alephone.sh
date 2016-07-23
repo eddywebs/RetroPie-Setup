@@ -11,7 +11,8 @@
 
 rp_module_id="alephone"
 rp_module_desc="AlephOne - Marathon Engine"
-rp_module_menus="4+"
+rp_module_help="To get the games running on the Raspberry Pi, make sure to set each game to use the software renderer and disable the enhanced HUD from the Plugins menu. For Marathon 1, disable both HUDs from the Plugins menu, start a game, quit back to the title screen and enable Enhanced HUD and it will work and properly."
+rp_module_section="opt"
 rp_module_flags="!mali"
 
 function depends_alephone() {
@@ -36,6 +37,29 @@ function install_alephone() {
     make install
 }
 
+function game_data_alephone() {
+    cd "$__tmpdir"
+    local release_url="https://github.com/Aleph-One-Marathon/alephone/releases/download/release-20150620"
+    if [[ ! -f "$romdir/ports/$md_id/Marathon/Shapes.shps" ]]; then
+        wget -O Marathon-20150620-Data.zip "$release_url/Marathon-20150620-Data.zip"
+        unzip Marathon-20150620-Data.zip -d "$romdir/ports/$md_id"
+        rm Marathon-20150620-Data.zip
+    fi
+
+    if [[ ! -f "$romdir/ports/$md_id/Marathon 2/Shapes.shpA" ]]; then
+        wget -O Marathon2-20150620-Data.zip "$release_url/Marathon2-20150620-Data.zip"
+        unzip Marathon2-20150620-Data.zip -d "$romdir/ports/$md_id"
+        rm Marathon2-20150620-Data.zip
+    fi
+
+    if [[ ! -f "$romdir/ports/$md_id/Marathon Infinity/Shapes.shpA" ]]; then
+        wget -O MarathonInfinity-20150620-Data.zip "$release_url/MarathonInfinity-20150620-Data.zip"
+        unzip MarathonInfinity-20150620-Data.zip -d "$romdir/ports/$md_id"
+        rm MarathonInfinity-20150620-Data.zip
+    fi
+    chown -R $user:$user "$romdir/ports/$md_id"
+}
+
 function configure_alephone() {
     addPort "$md_id" "marathon" "Aleph One Engine - Marathon" "'$md_inst/bin/alephone' '$romdir/ports/$md_id/Marathon/'"
     addPort "$md_id" "marathon2" "Aleph One Engine - Marathon 2" "'$md_inst/bin/alephone' '$romdir/ports/$md_id/Marathon 2/'"
@@ -45,28 +69,5 @@ function configure_alephone() {
 
     moveConfigDir "$home/.alephone" "$configDir/alephone"
 
-    local release_url="https://github.com/Aleph-One-Marathon/alephone/releases/download/release-20150620"
-    if [[ ! -f "$romdir/ports/$md_id/Marathon/Shapes.shps" ]]; then
-        wget "$release_url/Marathon-20150620-Data.zip"
-        unzip Marathon-20150620-Data.zip -d "$romdir/ports/$md_id"
-        rm Marathon-20150620-Data.zip
-    fi
-
-    if [[ ! -f "$romdir/ports/$md_id/Marathon 2/Shapes.shpA" ]]; then
-        wget "$release_url/Marathon2-20150620-Data.zip"
-        unzip Marathon2-20150620-Data.zip -d "$romdir/ports/$md_id"
-        rm Marathon2-20150620-Data.zip
-    fi
-
-    if [[ ! -f "$romdir/ports/$md_id/Marathon Infinity/Shapes.shpA" ]]; then
-        wget https://github.com/Aleph-One-Marathon/alephone/releases/download/release-20150620/MarathonInfinity-20150620-Data.zip
-        unzip MarathonInfinity-20150620-Data.zip -d "$romdir/ports/$md_id"
-        rm MarathonInfinity-20150620-Data.zip
-    fi
-
-    chown -R $user:$user "$romdir/ports/$md_id"
-
-    if isPlatform "rpi"; then
-        __INFMSGS+=("To get the games running, make sure to set each game to use the software renderer and disable the enhanced HUD from the Plugins menu. For Marathon 1, disable both HUDs from the Plugins menu, start a game, quit back to the title screen and enable Enhanced HUD and it will work and properly.")
-    fi
+    [[ "$md_mode" == "install" ]] && game_data_alephone
 }

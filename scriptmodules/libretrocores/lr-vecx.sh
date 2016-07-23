@@ -11,7 +11,8 @@
 
 rp_module_id="lr-vecx"
 rp_module_desc="Vectrex emulator - vecx port for libretro"
-rp_module_menus="2+"
+rp_module_help="ROM Extensions: .vec .gam .bin .zip\n\nCopy your Vectrex roms to $romdir/vectrex"
+rp_module_section="main"
 
 function sources_lr-vecx() {
     gitPullOrClone "$md_build" https://github.com/libretro/libretro-vecx
@@ -33,9 +34,6 @@ function install_lr-vecx() {
 }
 
 function configure_lr-vecx() {
-    # remove old install folder
-    rm -rf "$rootdir/$md_type/libretro-vecx"
-
     mkRomDir "vectrex"
     ensureSystemretroconfig "vectrex"
 

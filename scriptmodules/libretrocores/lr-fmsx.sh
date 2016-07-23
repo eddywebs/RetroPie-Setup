@@ -11,7 +11,8 @@
 
 rp_module_id="lr-fmsx"
 rp_module_desc="MSX/MSX2 emu - fMSX port for libretro"
-rp_module_menus="2+"
+rp_module_help="ROM Extensions: .rom .mx1 .mx2 .col .dsk .zip\n\nCopy your MSX/MSX2 roms to $romdir/msx"
+rp_module_section="opt"
 
 function sources_lr-fmsx() {
     gitPullOrClone "$md_build" https://github.com/libretro/fmsx-libretro.git
@@ -46,9 +47,6 @@ function install_lr-fmsx() {
 }
 
 function configure_lr-fmsx() {
-    # remove old install folder
-    rm -rf "$rootdir/$md_type/fmsx-libretro"
-
     mkRomDir "msx"
     ensureSystemretroconfig "msx"
 

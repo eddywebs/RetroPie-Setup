@@ -10,14 +10,13 @@
 #
 
 rp_module_id="ps3controller"
-rp_module_desc="Install/Pair PS3 controller"
-rp_module_menus="3+configure"
-rp_module_flags="nobin"
+rp_module_desc="PS3 controller driver and pair via sixad"
+rp_module_section="driver"
 
 function depends_ps3controller() {
     local depends=(checkinstall libusb-dev bluetooth libbluetooth-dev joystick)
     if isPlatform "rpi3" && hasPackage raspberrypi-bootloader && [[ "$__raspbian_ver" -ge "8" ]]; then
-        depends+=(pi-bluetooth)
+        depends+=(pi-bluetooth raspberrypi-sys-mods)
     fi
     getDepends "${depends[@]}"
 }
@@ -62,6 +61,8 @@ function remove_ps3controller() {
     rm -f /etc/udev/rules.d/99-sixpair.rules
     rm -f /etc/udev/rules.d/10-local.rules
     rm -rf "$md_inst"
+    # just incase permissions were not restored
+    [[ -f /usr/sbin/bluetoothd ]] && chmod 755 /usr/sbin/bluetoothd
 }
 
 function pair_ps3controller() {
@@ -78,7 +79,7 @@ function pair_ps3controller() {
     sixad-helper sixpair
 }
 
-function configure_ps3controller() {
+function gui_ps3controller() {
     while true; do
         local cmd=(dialog --backtitle "$__backtitle" --menu "Choose an option" 22 76 16)
         local options=(

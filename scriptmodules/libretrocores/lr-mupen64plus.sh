@@ -11,8 +11,8 @@
 
 rp_module_id="lr-mupen64plus"
 rp_module_desc="N64 emu - Mupen64 Plus port for libretro"
-rp_module_menus="2+"
-rp_module_flags=""
+rp_module_help="ROM Extensions: .z64 .n64 .v64\n\nCopy your N64 roms to $romdir/n64"
+rp_module_section="main"
 
 function sources_lr-mupen64plus() {
     if isPlatform "rpi"; then
@@ -25,7 +25,7 @@ function sources_lr-mupen64plus() {
 function build_lr-mupen64plus() {
     rpSwap on 750
     make clean
-    if isPlatform "rpi"; then
+    if isPlatform "armv6"; then
         make platform="$__platform"
     else
         make
@@ -42,9 +42,6 @@ function install_lr-mupen64plus() {
 }
 
 function configure_lr-mupen64plus() {
-    # remove old install folder
-    rm -rf "$rootdir/$md_type/mupen64plus-libretro"
-
     mkRomDir "n64"
     ensureSystemretroconfig "n64"
 

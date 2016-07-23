@@ -11,7 +11,8 @@
 
 rp_module_id="lr-handy"
 rp_module_desc="Atari Lynx emulator - Handy port for libretro"
-rp_module_menus="2+"
+rp_module_help="ROM Extensions: .lnx .zip\n\nCopy your Atari Lynx roms to $romdir/atarilynx"
+rp_module_section="main"
 
 function sources_lr-handy() {
     gitPullOrClone "$md_build" https://github.com/libretro/libretro-handy.git
@@ -31,9 +32,6 @@ function install_lr-handy() {
 }
 
 function configure_lr-handy() {
-    # remove old install folder
-    rm -rf "$rootdir/$md_type/libretro-handy"
-
     mkRomDir "atarilynx"
     ensureSystemretroconfig "atarilynx"
 

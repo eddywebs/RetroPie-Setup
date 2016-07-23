@@ -11,8 +11,7 @@
 
 rp_module_id="usbromservice"
 rp_module_desc="USB ROM Service"
-rp_module_menus="3+gui"
-rp_module_flags="nobin"
+rp_module_section="config"
 
 function depends_usbromservice() {
     local depends=(rsync ntfs-3g)
@@ -20,7 +19,7 @@ function depends_usbromservice() {
         if ! hasPackage usbmount 0.0.24; then
             depends+=(debhelper devscripts pmount lockfile-progs)
             getDepends "${depends[@]}"
-            if [[ "$__depends_mode" == "install" ]]; then
+            if [[ "$md_mode" == "install" ]]; then
                 rp_callModule usbromservice sources
                 rp_callModule usbromservice build
                 rp_callModule usbromservice install

@@ -11,8 +11,15 @@
 
 rp_module_id="esthemes"
 rp_module_desc="Install themes for Emulation Station"
-rp_module_menus="3+configure"
-rp_module_flags="nobin"
+rp_module_section="config"
+
+function depends_esthemes() {
+    if isPlatform "x11"; then
+        getDepends feh
+    else
+        getDepends fbi
+    fi
+}
 
 function install_theme_esthemes() {
     local theme="$1"
@@ -25,6 +32,8 @@ function install_theme_esthemes() {
         repo="RetroPie"
     fi
     mkdir -p "/etc/emulationstation/themes"
+    # do a fresh checkout to avoid some line ending issues with the autocrlf mode used to create the images vs git default on Raspbian
+    rm -rf "/etc/emulationstation/themes/$theme"
     gitPullOrClone "/etc/emulationstation/themes/$theme" "https://github.com/$repo/es-theme-$theme.git"
 }
 
@@ -35,7 +44,7 @@ function uninstall_theme_esthemes() {
     fi
 }
 
-function configure_esthemes() {
+function gui_esthemes() {
     printMsgs "dialog" "If you wish to run more than ~10 systems on themes other than Carbon, Pixel, Eudora, Turtle-pi, and Canela variants, you run the risk of getting the white screen of death (you may be able to get more systems by increasing your GPU/CPU split)."
     local themes=(
         'RetroPie carbon'
@@ -55,6 +64,7 @@ function configure_esthemes() {
         'RetroPie simplified-static-canela'
         'RetroPie zoid'
         'RetroPie nbba'
+        'lilbud material'
         'robertybob space'
         'robertybob simplebigart'
         'RetroPie clean-look'
@@ -66,6 +76,15 @@ function configure_esthemes() {
         local options=()
         local status=()
         local i=1
+        local gallerydir="/etc/emulationstation/es-theme-gallery"
+        if [[ -d "$gallerydir" ]]; then
+            status+=("i")
+            options+=("$i" "View or Update Theme Gallery")
+        else
+            status+=("n")
+            options+=("$i" "Download Theme Gallery")
+        fi
+        ((i++))
         for theme in "${themes[@]}"; do
             theme=($theme)
             theme="${theme[1]}"
@@ -80,8 +99,8 @@ function configure_esthemes() {
         done
         local cmd=(dialog --backtitle "$__backtitle" --menu "Choose an option" 22 76 16)
         local choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
-        if [[ -n "$choice" ]]; then
-            theme=(${themes[choice-1]})
+        if [[ -n "$choice" && $choice > 1 ]]; then
+            theme=(${themes[choice-2]})
             repo="${theme[0]}"
             theme="${theme[1]}"
             if [[ "${status[choice-1]}" == "i" ]]; then
@@ -98,6 +117,32 @@ function configure_esthemes() {
                 esac
             else
                 rp_callModule esthemes install_theme "$theme" "$repo"
+            fi
+        elif [[ -n "$choice" && $choice == 1 ]]; then
+            if [[ "${status[0]}" == "i" ]]; then
+                options=(1 "View Theme Gallery" 2 "Update Theme Gallery" 3 "Remove Theme Gallery")
+                cmd=(dialog --backtitle "$__backtitle" --menu "Choose an option for gallery" 12 40 06)
+                local choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+                case "$choice" in
+                    1)
+                        cd "$gallerydir"
+                        if isPlatform "x11"; then
+                            feh --info "echo %f" --slideshow-delay 6 --fullscreen --auto-zoom --filelist images.list
+                        else
+                            fbi --timeout 6 --once --autozoom --list images.list
+                        fi
+                        ;;
+                    2)
+                        gitPullOrClone "$gallerydir" "http://github.com/wetriner/es-theme-gallery"
+                        ;;
+                    3)
+                        if [[ -d "$gallerydir" ]]; then
+                            rm -rf "$gallerydir"
+                        fi
+                        ;;
+                esac
+            else
+                gitPullOrClone "$gallerydir" "http://github.com/wetriner/es-theme-gallery"
             fi
         else
             break

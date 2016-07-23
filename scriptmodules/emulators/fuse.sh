@@ -11,7 +11,8 @@
 
 rp_module_id="fuse"
 rp_module_desc="ZX Spectrum emulator Fuse"
-rp_module_menus="2+"
+rp_module_help="ROM Extensions: .sna .szx .z80 .tap .tzx .gz .udi .mgt .img .trd .scl .dsk .zip\n\nCopy your ZX Spectrum roms to $romdir/zxspectrum"
+rp_module_section="opt"
 rp_module_flags="dispmanx !mali"
 
 function depends_fuse() {
@@ -68,7 +69,6 @@ function configure_fuse() {
     setDispmanx "$md_id" 1
     configure_dispmanx_on_fuse
 
-    delSystem "$md_id" "zxspectrum"
     addSystem 0 "$md_id-48k" "zxspectrum" "$md_inst/bin/fuse --machine 48 %ROM%"
     addSystem 0 "$md_id-128k" "zxspectrum" "$md_inst/bin/fuse --machine 128 %ROM%"
 }

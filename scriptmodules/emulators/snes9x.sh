@@ -11,7 +11,8 @@
 
 rp_module_id="snes9x"
 rp_module_desc="SNES emulator SNES9X-RPi"
-rp_module_menus="2+"
+rp_module_help="ROM Extensions: .bin .smc .sfc .fig .swc .mgd .zip\n\nCopy your SNES roms to $romdir/snes"
+rp_module_section="opt"
 rp_module_flags="dispmanx !x86 !mali"
 
 function depends_snes9x() {
@@ -44,6 +45,5 @@ function configure_snes9x() {
 
     setDispmanx "$md_id" 1
 
-    delSystem "$md_id" "snes9x"
     addSystem 0 "$md_id" "snes" "$md_inst/snes9x %ROM%"
 }

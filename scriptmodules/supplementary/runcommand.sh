@@ -10,18 +10,17 @@
 #
 
 rp_module_id="runcommand"
-rp_module_desc="Configure the 'runcommand' - Launch script"
-rp_module_menus="3+gui"
-rp_module_flags="nobin"
+rp_module_desc="The 'runcommand' launch script - needed for launching the emulators from the frontend"
+rp_module_section="core"
 
-function install_runcommand() {
+function install_bin_runcommand() {
     cp "$scriptdir/scriptmodules/$md_type/$md_id/runcommand.sh" "$md_inst/"
     cp "$scriptdir/scriptmodules/$md_type/$md_id/joy2key.py" "$md_inst/"
     chmod a+x "$md_inst/runcommand.sh"
     chmod a+x "$md_inst/joy2key.py"
     if [[ ! -f "$configdir/all/runcommand.cfg" ]]; then
         mkUserDir "$configdir/all"
-        iniConfig "=" '"' "$configdir/all/runcommand.cfg"
+        iniConfig " = " '"' "$configdir/all/runcommand.cfg"
         iniSet "use_art" "0"
         iniSet "disable_joystick" "0"
         iniSet "governor" ""
@@ -32,6 +31,7 @@ function install_runcommand() {
         dialog --create-rc "$configdir/all/runcommand-launch-dialog.cfg"
         chown $user:$user "$configdir/all/runcommand-launch-dialog.cfg"
     fi
+    md_ret_require="$md_inst/runcommand.sh"
 }
 
 function governor_runcommand() {
@@ -56,7 +56,7 @@ function governor_runcommand() {
 }
 
 function gui_runcommand() {
-    iniConfig "=" '"' "$configdir/all/runcommand.cfg"
+    iniConfig " = " '"' "$configdir/all/runcommand.cfg"
 
     local cmd=(dialog --backtitle "$__backtitle" --menu "Choose an option." 22 86 16)
     while true; do

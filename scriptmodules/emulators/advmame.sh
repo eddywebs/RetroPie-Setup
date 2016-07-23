@@ -11,8 +11,13 @@
 
 rp_module_id="advmame"
 rp_module_desc="AdvanceMAME"
-rp_module_menus="2+"
+rp_module_help="ROM Extension: .zip\n\nCopy your AdvanceMAME roms to either $romdir/mame-advmame or\n$romdir/arcade"
+rp_module_section="opt"
 rp_module_flags="!mali"
+
+function _get_vers_advmame() {
+    echo 0.94.0 1.4
+}
 
 function depends_advmame() {
     getDepends libsdl1.2-dev
@@ -20,7 +25,7 @@ function depends_advmame() {
 
 function sources_advmame() {
     local version
-    for version in 0.94.0 1.4; do
+    for version in $(_get_vers_advmame); do
         mkdir -p "$version"
         pushd "$version"
         wget -O- -q "$__archive_url/advancemame-$version.tar.gz" | tar -xvz --strip-components=1
@@ -139,7 +144,7 @@ _EOF_
 
 function build_advmame() {
     local version
-    for version in *; do
+    for version in $(_get_vers_advmame); do
         pushd "$version"
         ./configure CFLAGS="$CFLAGS -fsigned-char" LDFLAGS="-s -lm -Wl,--no-as-needed" --prefix="$md_inst/$version"
         make clean
@@ -150,7 +155,7 @@ function build_advmame() {
 
 function install_advmame() {
     local version
-    for version in *; do
+    for version in $(_get_vers_advmame); do
         pushd "$version"
         make install
         popd
@@ -159,7 +164,16 @@ function install_advmame() {
 
 function configure_advmame() {
     mkRomDir "arcade"
+    mkRomDir "arcade/advmame"
     mkRomDir "mame-advmame"
+
+    local mame_sub_dir
+    for mame_sub_dir in artwork diff hi inp memcard nvram sample snap sta; do
+        mkRomDir "mame-advmame/$mame_sub_dir"
+        ln -sf "$romdir/mame-advmame/$mame_sub_dir" "$romdir/arcade/advmame"
+        # fix for older broken symlink generation
+        rm -f "$romdir/mame-advmame/$mame_sub_dir/$mame_sub_dir"
+    done
 
     # delete old install files
     rm -rf "$md_inst/"{bin,man,share}
@@ -168,15 +182,24 @@ function configure_advmame() {
 
     local version
     local default
-    for version in *; do
+    for version in $(_get_vers_advmame); do
+        [[ -f "$md_conf_root/mame-advmame/advmame-$version.rc" ]] && continue
         su "$user" -c "$md_inst/$version/bin/advmame --default"
 
         iniConfig " " "" "$md_conf_root/mame-advmame/advmame-$version.rc"
 
         iniSet "misc_quiet" "yes"
-        iniSet "dir_rom" "$romdir/mame-advmame:$romdir/arcade"
-        iniSet "dir_artwork" "$romdir/mame-advmame/artwork:$romdir/arcade/artwork"
-        iniSet "dir_sample" "$romdir/mame-advmame/samples:$romdir/arcade/sample"
+        iniSet "dir_rom" "$romdir/mame-advmame"
+        iniSet "dir_artwork" "$romdir/mame-advmame/artwork"
+        iniSet "dir_sample" "$romdir/mame-advmame/samples"
+        iniSet "dir_diff" "$romdir/mame-advmame/diff"
+        iniSet "dir_hi" "$romdir/mame-advmame/hi"
+        iniSet "dir_image" "$romdir/mame-advmame"
+        iniSet "dir_inp" "$romdir/mame-advmame/inp"
+        iniSet "dir_memcard" "$romdir/mame-advmame/memcard"
+        iniSet "dir_nvram" "$romdir/mame-advmame/nvram"
+        iniSet "dir_snap" "$romdir/mame-advmame/snap"
+        iniSet "dir_sta" "$romdir/mame-advmame/nvram"
 
         if isPlatform "rpi"; then
             iniSet "device_video" "fb"
@@ -184,7 +207,6 @@ function configure_advmame() {
             iniSet "device_keyboard" "raw"
             iniSet "device_sound" "alsa"
             iniSet "display_vsync" "no"
-            iniSet "sound_latency" "0.2"
             iniSet "sound_normalize" "no"
         else
             iniSet "device_video_output" "overlay"
@@ -194,6 +216,7 @@ function configure_advmame() {
 
         if isPlatform "armv6"; then
             iniSet "sound_samplerate" "22050"
+            iniSet "sound_latency" "0.2"
         else
             iniSet "sound_samplerate" "44100"
         fi

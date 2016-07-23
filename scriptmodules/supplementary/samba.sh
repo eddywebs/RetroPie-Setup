@@ -11,8 +11,7 @@
 
 rp_module_id="samba"
 rp_module_desc="Configure Samba ROM Shares"
-rp_module_menus="3+configure"
-rp_module_flags="nobin"
+rp_module_section="config"
 
 function depends_samba() {
     getDepends samba
@@ -51,7 +50,7 @@ function install_shares_samba() {
     add_share_samba "bios" "$home/RetroPie/BIOS"
     add_share_samba "configs" "$configdir"
     add_share_samba "splashscreens" "$datadir/splashscreens"
-    restart_samba_samba
+    restart_samba
 }
 
 function remove_shares_samba() {
@@ -61,7 +60,7 @@ function remove_shares_samba() {
     done
 }
 
-function configure_samba() {
+function gui_samba() {
     while true; do
         local cmd=(dialog --backtitle "$__backtitle" --menu "Choose an option" 22 76 16)
         local options=(
