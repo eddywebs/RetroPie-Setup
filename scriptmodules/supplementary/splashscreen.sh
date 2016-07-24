@@ -37,7 +37,7 @@ function install_bin_splashscreen() {
 
     chmod +x /etc/init.d/asplashscreen
 
-    gitPullOrClone "$md_inst" https://github.com/RetroPie/retropie-splashscreens.git
+    gitPullOrClone "$md_inst" https://github.com/eddywebs/retropie-splashscreens.git
 
     mkUserDir "$datadir/splashscreens"
     echo "Place your own splashscreens in here." >"$datadir/splashscreens/README.txt"
