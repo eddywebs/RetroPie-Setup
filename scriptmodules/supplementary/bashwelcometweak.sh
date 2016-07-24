@@ -117,7 +117,7 @@ function retropie_welcome() {
                 out+="Temperature........: CPU: $cpuTempC°C/$cpuTempF°F GPU: $gpuTempC°C/$gpuTempF°F"
                 ;;
             10)
-                out+="${fgwht}The RetroPie Project, https://retropie.org.uk"
+                out+="${fgwht} Retrogamingconsole.com fork of GNU/GPL Software - The RetroPie Project, https://retropie.org.uk"
                 ;;
         esac
         out+="\n"
