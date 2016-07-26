@@ -68,8 +68,9 @@ function enable_directusbromservice() {
     cp -v "$scriptdir/scriptmodules/supplementary/usbromservice/01_umount_usb" /etc/usbmount/umount.d/
     sed -i -e "s/USERTOBECHOSEN/$user/g" /etc/usbmount/umount.d/01_umount_usb
     chmod +x /etc/usbmount/umount.d/01_umount_usb
-    #add symlink cleanup service -bug where reboot and usb disconnection caused sysm link files and folder from direct read service to remain
-    sed -i -e "s/USERTOBECHOSEN/$user/g" /etc/profile.d/02_umount_usb
+    #add symlink cleanup service on boot-bug where reboot and usb disconnection caused sysm link files and folder from direct read service to remain
+    cp -v "$scriptdir/scriptmodules/supplementary/usbromservice/01_umount_usb" /etc/profile.d/
+    sed -i -e "s/USERTOBECHOSEN/$user/g" /etc/profile.d/01_umount_usb
     chmod +x /etc/profile.d/02_umount_usb
 
     rm -f /etc/usbmount/mount.d/01_retropie_copyroms #delete the traditional copyroms script
