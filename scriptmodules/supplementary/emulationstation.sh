@@ -31,7 +31,7 @@ function depends_emulationstation() {
 function sources_emulationstation() {
     local repo="$1"
     local branch="$2"
-    [[ -z "$repo" ]] && repo="https://github.com/retropie/EmulationStation"
+    [[ -z "$repo" ]] && repo="https://github.com/eddywebs/EmulationStation"
     [[ -z "$branch" ]] && branch="master"
     gitPullOrClone "$md_build" "$repo" "$branch"
     # make sure libMali.so can be found so we use OpenGL ES
