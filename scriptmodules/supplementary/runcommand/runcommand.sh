@@ -79,8 +79,9 @@ function get_config() {
 
 function start_joy2key() {
     [[ "$disable_joystick" -eq 1 ]] && return
+    # get the first joystick device (if not already set)
+    [[ -z "$__joy2key_dev" ]] && __joy2key_dev="$(ls -1 /dev/input/js* 2>/dev/null | head -n1)"
     # if joy2key.py is installed run it with cursor keys for axis, and enter + tab for buttons 0 and 1
-    __joy2key_dev=$(ls -1 /dev/input/js* 2>/dev/null | head -n1)
     if [[ -f "$rootdir/supplementary/runcommand/joy2key.py" && -n "$__joy2key_dev" ]] && ! pgrep -f joy2key.py >/dev/null; then
         "$rootdir/supplementary/runcommand/joy2key.py" "$__joy2key_dev" 1b5b44 1b5b43 1b5b41 1b5b42 0a 09 &
         __joy2key_pid=$!
@@ -759,6 +760,8 @@ function check_menu() {
     return $dont_launch
 }
 
+[[ -f "$configdir/all/runcommand-onstart.sh" ]] && bash "$configdir/all/runcommand-onstart.sh"
+
 # turn off cursor and clear screen
 tput civis
 clear
@@ -796,9 +799,8 @@ config_dispmanx "$save_emu"
 
 retroarch_append_config
 
-# launch the command - don't redirect stdout for frotz,  when using console output or when not using _SYS_
-# frotz is included in case its emulators.cfg is out of date and missing CON: - can be removed in the future
-if [[ "$emulator" == frotz || "$is_console" -eq 1 || "$is_sys" -eq 0 ]]; then
+# launch the command - don't redirect stdout when using console output (CON: prefix) or when not using _SYS_
+if [[ "$is_console" -eq 1 || "$is_sys" -eq 0 ]]; then
     # turn cursor on
     tput cnorm
     eval $command </dev/tty 2>/tmp/runcommand.log
@@ -823,5 +825,7 @@ fi
 [[ -n "$fb_new" ]] && restore_fb
 
 tput cnorm
+
+[[ -f "$configdir/all/runcommand-onend.sh" ]] && bash "$configdir/all/runcommand-onend.sh"
 
 exit 0

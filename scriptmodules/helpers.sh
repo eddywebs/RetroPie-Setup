@@ -374,9 +374,6 @@ function iniFileEditor() {
     local config="$3"
     [[ ! -f "$config" ]] && return
 
-    # disable globbing
-    set -f
-
     iniConfig "$delim" "$quote" "$config"
     local sel
     local value
@@ -391,7 +388,8 @@ function iniFileEditor() {
 
         # generate menu from options
         for option in "${ini_options[@]}"; do
-            option=($option)
+            # split into new array (globbing safe)
+            read -ra option <<<"$option"
             key="${option[0]}"
             keys+=("$key")
             params+=("${option[*]:1}")
@@ -449,7 +447,9 @@ function iniFileEditor() {
         options=("U" "unset")
         local default=""
 
-        params=(${params[sel]})
+        # split into new array (globbing safe)
+        read -ra params <<<"${params[sel]}"
+
         local mode="${params[0]}"
 
         case "$mode" in
@@ -508,25 +508,13 @@ function iniFileEditor() {
             fi
         fi
 
-        # save the #include line and remove it, so we can add our ini values and re-add the include line(s) at the end
-        local include=$(grep "^#include" "$config")
-        sed -i "/^#include/d" "$config"
-
         if [[ "$choice" == "U" ]]; then
             iniUnset "${keys[sel]}" "$value"
         else
             iniSet "${keys[sel]}" "$value"
         fi
 
-        # re-add the include line(s)
-        if [[ -n "$include" ]]; then
-            echo "$include" >>"$config"
-        fi
-
     done
-
-    # enable globbing
-    set +f
 }
 
 function setESSystem() {
@@ -653,7 +641,8 @@ function joy2keyStart() {
     # check if joy2key is installed
     [[ ! -f "$rootdir/supplementary/runcommand/joy2key.py" ]] && return 1
 
-    __joy2key_dev=$(ls -1 /dev/input/js* 2>/dev/null | head -n1)
+    # get the first joystick device (if not already set)
+    [[ -z "$__joy2key_dev" ]] && __joy2key_dev="$(ls -1 /dev/input/js* 2>/dev/null | head -n1)"
 
     # if no joystick device, or joy2key is already running exit
     [[ -z "$__joy2key_dev" ]] || pgrep -f joy2key.py >/dev/null && return 1
