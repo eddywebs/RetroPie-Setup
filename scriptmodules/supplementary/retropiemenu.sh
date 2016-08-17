@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -14,8 +14,12 @@ rp_module_desc="RetroPie configuration menu for EmulationStation"
 rp_module_section="core"
 
 function _update_hook_retropiemenu() {
-    # to show as installed in retropie-setup 4.x
-    [[ -f "$home/.emulationstation/gamelists/retropie/gamelist.xml" ]] && mkdir -p "$md_inst"
+    # to show as installed when upgrading to retropie-setup 4.x
+    if ! rp_isInstalled "$md_idx" && [[ -f "$home/.emulationstation/gamelists/retropie/gamelist.xml" ]]; then
+        mkdir -p "$md_inst"
+        # to stop older scripts removing when launching from retropie menu in ES due to not using exec or exiting after running retropie-setup from this module
+        touch "$md_inst/.retropie"
+    fi
 }
 
 function depends_retropiemenu() {
@@ -82,7 +86,7 @@ function launch_retropiemenu() {
             su $user -c "\"$emudir/retroarch/bin/retroarch\" --menu --config \"$configdir/all/retroarch.cfg\""
             ;;
         rpsetup.rp)
-            "$scriptdir/retropie_setup.sh"
+            exec "$scriptdir/retropie_setup.sh"
             ;;
         raspiconfig.rp)
             raspi-config

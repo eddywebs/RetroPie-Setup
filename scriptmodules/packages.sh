@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -84,7 +84,8 @@ function rp_callModule() {
     fi
 
     if [[ -z "$md_id" ]]; then
-        fatalError "No module '$req_id' found for platform $__platform"
+        printMsgs "console" "No module '$req_id' found for platform $__platform"
+        return 1
     fi
 
     # automatically build/install module if no parameters are given
@@ -219,8 +220,7 @@ function rp_callModule() {
         install_bin)
             if fnExists "install_bin_${md_id}"; then
                 if ! "$function" "$@"; then
-                    # if it failed to install remove the install folder if it exists
-                    rm -rf "$md_inst"
+                    md_ret_errors+=("Unable to install binary for $md_id")
                 fi
             else
                 if rp_hasBinary "$md_idx"; then
@@ -267,6 +267,10 @@ function rp_callModule() {
     [[ "$pushed" -eq 0 ]] && popd
 
     if [[ "${#md_ret_errors[@]}" -gt 0 ]]; then
+        # if sources fails make sure we clean up
+        if [[ "$mode" == "sources" ]]; then
+            rp_callModule "$md_idx" clean
+        fi
         # remove install folder if there is an error
         [[ -d "$md_inst" ]] && find "$md_inst" -maxdepth 0 -empty -exec rmdir {} \;
         printMsgs "console" "${md_ret_errors[@]}" >&2
@@ -322,6 +326,7 @@ function rp_installModule() {
             rp_callModule "$idx" "$mode" || return 1
         done
     else
+        rp_callModule "$idx" clean
         rp_callModule "$idx" || return 1
     fi
     return 0

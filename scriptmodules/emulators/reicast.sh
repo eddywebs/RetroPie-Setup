@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -82,7 +82,13 @@ function configure_reicast() {
     ln -sf fileThatDoesNotExist "$home/RetroPie/roms/dreamcast/systemManager.cdi"
 
     # add system
-    addSystem 1 "$md_id" "dreamcast" "CON:$md_inst/bin/reicast.sh OSS %ROM%"
+    # possible audio backends: alsa, oss, omx
+    if isPlatform "rpi"; then
+        addSystem 1 "${md_id}-audio-omx" "dreamcast" "CON:$md_inst/bin/reicast.sh omx %ROM%"
+        addSystem 0 "${md_id}-audio-oss" "dreamcast" "CON:$md_inst/bin/reicast.sh oss %ROM%"
+    else
+        addSystem 1 "$md_id" "dreamcast" "CON:$md_inst/bin/reicast.sh oss %ROM%"
+    fi
 
     addAutoConf reicast_input 1
 }

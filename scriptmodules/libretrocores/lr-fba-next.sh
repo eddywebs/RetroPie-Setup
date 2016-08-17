@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -15,7 +15,7 @@ rp_module_help="ROM Extension: .zip\n\nCopy your FBA roms to\n$romdir/fba or\n$r
 rp_module_section="main"
 
 function sources_lr-fba-next() {
-    gitPullOrClone "$md_build" https://github.com/libretro/libretro-fba.git
+    gitPullOrClone "$md_build" https://github.com/libretro/fbalpha.git
 }
 
 function build_lr-fba-next() {
@@ -23,13 +23,13 @@ function build_lr-fba-next() {
     local params=()
     isPlatform "arm" && params+=("platform=armv")
     make -f makefile.libretro "${params[@]}" profile=performance
-    md_ret_require="$md_build/fba_libretro.so"
+    md_ret_require="$md_build/fbalpha_libretro.so"
 }
 
 function install_lr-fba-next() {
     md_ret_files=(
         'fba.chm'
-        'fba_libretro.so'
+        'fbalpha_libretro.so'
         'gamelist.txt'
         'whatsnew.html'
         'preset-example.zip'
@@ -52,7 +52,7 @@ function configure_lr-fba-next() {
 
     local def=1
     isPlatform "armv6" && def=0
-    addSystem 0 "$md_id" "arcade" "$md_inst/fba_libretro.so"
-    addSystem $def "$md_id" "neogeo" "$md_inst/fba_libretro.so"
-    addSystem $def "$md_id" "fba arcade" "$md_inst/fba_libretro.so"
+    addSystem 0 "$md_id" "arcade" "$md_inst/fbalpha_libretro.so"
+    addSystem $def "$md_id" "neogeo" "$md_inst/fbalpha_libretro.so"
+    addSystem $def "$md_id" "fba arcade" "$md_inst/fbalpha_libretro.so"
 }

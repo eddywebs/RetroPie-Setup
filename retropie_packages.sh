@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
 # global variables ==========================================================
 
-__version="4.0-rc1"
+__version="4.0-rc2"
+
+[[ "$__debug" -eq 1 ]] && set -x
 
 # main retropie install location
 rootdir="/opt/retropie"

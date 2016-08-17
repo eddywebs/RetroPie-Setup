@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -80,6 +80,7 @@ function pair_ps3controller() {
 }
 
 function gui_ps3controller() {
+    printMsgs "dialog" "NOTE: You cannot currently use PS3 controllers with other bluetooth devices. The PS3 controller driver disables the standard bluetooth stack. If you want to use a wireless keyboard along with your PS3 controllers you can use 2.4ghz wireless devices that come with their own dongle."
     while true; do
         local cmd=(dialog --backtitle "$__backtitle" --menu "Choose an option" 22 76 16)
         local options=(

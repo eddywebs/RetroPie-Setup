@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -119,8 +119,15 @@ function install_mupen64plus() {
 
 function configure_mupen64plus() {
     if isPlatform "rpi"; then
-        addSystem 1 "${md_id}-GLideN64" "n64" "$md_inst/bin/mupen64plus.sh mupen64plus-video-GLideN64 %ROM%"
-        addSystem 0 "${md_id}-gles2rice" "n64" "$md_inst/bin/mupen64plus.sh mupen64plus-video-rice %ROM%"
+        local res
+        for res in "320x240" "640x480"; do
+            local def=0
+            local name=""
+            [[ "$res" == "320x240" ]] && def=1
+            [[ "$res" == "640x480" ]] && name="-highres"
+            addSystem $def "${md_id}-GLideN64$name" "n64" "$md_inst/bin/mupen64plus.sh mupen64plus-video-GLideN64 %ROM% $res"
+            addSystem 0 "${md_id}-gles2rice$name" "n64" "$md_inst/bin/mupen64plus.sh mupen64plus-video-rice %ROM% $res"
+        done
         addSystem 0 "${md_id}-gles2n64" "n64" "$md_inst/bin/mupen64plus.sh mupen64plus-video-n64 %ROM%"
         addSystem 0 "${md_id}-videocore" "n64" "$md_inst/bin/mupen64plus.sh mupen64plus-video-videocore %ROM%"
     else
@@ -167,7 +174,7 @@ function configure_mupen64plus() {
             echo "[Video-GLideN64]" >> "$config"
         fi
         # Settings version. Don't touch it.
-        iniSet "configVersion" "12"
+        iniSet "configVersion" "13"
         # Bilinear filtering mode (0=N64 3point, 1=standard)
         iniSet "bilinearMode" "1"
         # Size of texture cache in megabytes. Good value is VRAM*3/4
@@ -175,7 +182,11 @@ function configure_mupen64plus() {
         # Disable FB emulation until visual issues are sorted out
         iniSet "EnableFBEmulation" "False"
         # Use native res
-        iniSet "nativeResFactor" "1"
+        iniSet "UseNativeResolutionFactor" "1"
+
+        # Disable gles2n64 autores feature and use dispmanx upscaling
+        iniConfig " = " "" "$md_conf_root/n64/gles2n64.conf"
+        iniSet "auto resolution" "0"
         
         addAutoConf mupen64plus_audio 1
         addAutoConf mupen64plus_compatibility_check 1

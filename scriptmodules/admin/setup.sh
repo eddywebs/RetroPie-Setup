@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -66,6 +66,9 @@ function depends_setup() {
     if isPlatform "rpi" && [[ -f /boot/config.txt ]] && grep -q "^dtoverlay=vc4-kms-v3d" /boot/config.txt; then
         printMsgs "dialog" "You have the experimental desktop GL driver enabled. This is NOT compatible with RetroPie, and Emulation Station as well as emulators will fail to launch. Please disable the experimental desktop GL driver from the raspi-config 'Advanced Options' menu."
     fi
+
+    # remove all but the last 20 logs
+    find "$__logdir" -type f | sort | head -n -20 | xargs -d '\n' --no-run-if-empty rm
 }
 
 function updatescript_setup()
@@ -95,8 +98,18 @@ function post_update_setup() {
 
     echo "$__version" >"$rootdir/VERSION"
 
-    # run _update_hook_id functions - eg to fix up modules for retropie-setup 4.x install detection
-    rp_updateHooks
+    local logfilename
+    __ERRMSGS=()
+    __INFMSGS=()
+    rps_logInit
+    {
+        rps_logStart
+        # run _update_hook_id functions - eg to fix up modules for retropie-setup 4.x install detection
+        printHeading "Running post update hooks"
+        rp_updateHooks
+        rps_logEnd
+    } &> >(tee >(gzip --stdout >"$logfilename"))
+    rps_printInfo "$logfilename"
 
     printMsgs "dialog" "NOTICE: Retropie is an open source software licensed under GPL, the source code for with redistribution is available at: https://github.com/eddywebs/RetroPie-Setup"
 
@@ -162,6 +175,7 @@ function package_setup() {
                 rps_logInit
                 {
                     rps_logStart
+                    rp_callModule "$idx" clean
                     rp_callModule "$idx"
                     rps_logEnd
                 } &> >(tee >(gzip --stdout >"$logfilename"))
@@ -265,6 +279,7 @@ function section_gui_setup() {
                 {
                     rps_logStart
                     for idx in $(rp_getSectionIds $section); do
+                        rp_callModule "$idx" clean
                         rp_callModule "$idx"
                     done
                     rps_logEnd
@@ -332,6 +347,7 @@ function settings_gui_setup() {
                 rp_callModule "$choice" depends
                 rp_callModule "$choice" gui
             else
+                rp_callModule "$idx" clean
                 rp_callModule "$choice"
             fi
             rps_logEnd
@@ -375,13 +391,19 @@ function update_packages_gui_setup() {
 }
 
 function quick_install_setup() {
-    for idx in $(rp_getSectionIds core) $(rp_getSectionIds main); do
-        if rp_hasBinaries; then
+    local logfilename
+    __ERRMSGS=()
+    __INFMSGS=()
+    rps_logInit
+    {
+        rps_logStart
+        local idx
+        for idx in $(rp_getSectionIds core) $(rp_getSectionIds main); do
             rp_installModule "$idx"
-        else
-            rp_callModule "$idx"
-        fi
-    done
+        done
+        rps_logEnd
+    } &> >(tee >(gzip --stdout >"$logfilename"))
+    rps_printInfo "$logfilename"
 }
 
 function packages_gui_setup() {

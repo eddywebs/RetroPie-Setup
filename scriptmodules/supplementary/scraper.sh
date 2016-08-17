@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -63,14 +63,14 @@ function scrape_scraper() {
     local max_width="$3"
     local use_rom_folder="$4"
     [[ -z "$system" ]] && return
-    set -x
+
     local gamelist
     local img_dir
     local img_path
     if [[ "$use_rom_folder" -eq 1 ]]; then
         gamelist="$romdir/$system/gamelist.xml"
-        img_dir="$romdir/$system/downloaded_images"
-        img_path="./downloaded_images"
+        img_dir="$romdir/$system/images"
+        img_path="./images"
     else
         gamelist="$home/.emulationstation/gamelists/$system/gamelist.xml"
         img_dir="$home/.emulationstation/downloaded_images/$system"
@@ -155,31 +155,15 @@ function gui_scraper() {
     fi
 
     iniConfig " = " '"' "$configdir/all/scraper.cfg"
-
-    local options=(
-        'use_thumbs=1'
-        'max_width=400'
-        'use_gdb_scraper=1'
-        'rom_name=0'
-        'append_only=0'
-        'use_rom_folder=0'
+    chown $user:$user "$configdir/all/scraper.cfg"
+    eval $(loadModuleConfig \
+        'use_thumbs=1' \
+        'max_width=400' \
+        'use_gdb_scraper=1' \
+        'rom_name=0' \
+        'append_only=0' \
+        'use_rom_folder=0' \
     )
-
-    local option
-    local key
-    local value
-
-    for option in "${options[@]}"; do
-        option=(${option/=/ })
-        key="${option[0]}"
-        value="${option[1]}"
-        iniGet "$key"
-        if [[ -z "$ini_value" ]]; then
-            iniSet "$key" "$value"
-        else
-            eval "$key=\"$ini_value\""
-        fi
-    done
 
     local default
     while true; do
@@ -245,6 +229,7 @@ function gui_scraper() {
                 4)
                     cmd=(dialog --backtitle "$__backtitle" --inputbox "Please enter the max image width in pixels" 10 60 "$max_width")
                     max_width=$("${cmd[@]}" 2>&1 >/dev/tty)
+                    iniSet "max_width" "$max_width"
                     ;;
                 5)
                     use_gdb_scraper="$((use_gdb_scraper ^ 1))"

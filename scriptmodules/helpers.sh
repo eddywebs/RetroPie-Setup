@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -43,6 +43,16 @@ function ask() {
         y*|Y*) return 0 ;;
         *) return 1 ;;
     esac
+}
+
+function runCmd() {
+    local ret
+    "$@"
+    ret=$?
+    if [[ "$ret" -ne 0 ]]; then
+        md_ret_errors+=("Error running '$*' - returned $ret")
+    fi
+    return $ret
 }
 
 function hasFlag() {
@@ -246,7 +256,7 @@ function gitPullOrClone() {
         [[ "$repo" =~ github ]] && git+=" --depth 1"
         [[ "$branch" != "master" ]] && git+=" --branch $branch"
         echo "$git \"$repo\" \"$dir\""
-        $git "$repo" "$dir"
+        runCmd $git "$repo" "$dir"
     fi
 }
 
@@ -362,7 +372,6 @@ function setDispmanx() {
     isPlatform "rpi" || return
     local mod_id="$1"
     local status="$2"
-    mkUserDir "$configdir/all"
     iniConfig "=" "\"" "$configdir/all/dispmanx.cfg"
     iniSet $mod_id "$status"
     chown $user:$user "$configdir/all/dispmanx.cfg"
@@ -614,6 +623,46 @@ function setConfigRoot() {
     mkUserDir "$md_conf_root"
 }
 
+function loadModuleConfig() {
+    local options=("$@")
+    local option
+    local key
+    local value
+
+    for option in "${options[@]}"; do
+        option=(${option/=/ })
+        key="${option[0]}"
+        value="${option[1]}"
+        iniGet "$key"
+        if [[ -z "$ini_value" ]]; then
+            iniSet "$key" "$value"
+            echo "local $key=\"$value\""
+        else
+            echo "local $key=\"$ini_value\""
+        fi
+    done
+}
+
+function applyPatch() {
+    local patch="$1"
+    local patch_applied="${patch##*/}.applied"
+
+    # patch is in stdin
+    if [[ ! -t 0 ]]; then
+        cat >"$patch"
+    fi
+
+    if [[ ! -f "$patch_applied" ]]; then
+        if patch -f -p1 <"$patch"; then
+            touch "$patch_applied"
+        else
+            md_ret_errors+=("$md_id patch $patch failed to apply")
+            return 1
+        fi
+    fi
+    return 0
+}
+
 # add a framebuffer mode to /etc/fb.modes - useful for adding specific resolutions used by emulators so SDL
 # can use them and utilise the rpi hardware scaling
 # without a 320x240 mode in fb.modes many of the emulators that output to framebuffer (stella / snes9x / gngeo)
@@ -737,7 +786,7 @@ function addSystem() {
 
     # add the emulator to the $conf_dir/emulators.cfg if a commandline exists (not used for some ports)
     if [[ -n "$cmd" ]]; then
-        iniConfig "=" '"' "$md_conf_root/$system/emulators.cfg"
+        iniConfig " = " '"' "$md_conf_root/$system/emulators.cfg"
         iniSet "$id" "$cmd"
         # set a default unless there is one already set
         iniGet "default"
@@ -757,7 +806,7 @@ function delSystem() {
     # remove from apps list for system
     if [[ -f "$config" && -n "$id" ]]; then
         # delete emulator entry
-        iniConfig "=" '"' "$config"
+        iniConfig " = " '"' "$config"
         iniDel "$id"
         # if it is the default - remove it - runcommand will prompt to select a new default
         iniGet "default"
@@ -785,7 +834,7 @@ function addPort() {
         mv "$configdir/$port" "$md_conf_root/"
     fi
 
-    if [ -t 0 ]; then
+    if [[ -t 0 ]]; then
         cat >"$file" << _EOF_
 #!/bin/bash
 "$rootdir/supplementary/runcommand/runcommand.sh" 0 _PORT_ $port
@@ -801,7 +850,7 @@ _EOF_
     if [[ "$md_mode" == "remove" ]]; then
         rm -f "$file"
         # if there are no more port launch scripts we can remove ports from emulation station
-        if [[ "$(ls -1 "$romdir/ports/*.sh" 2>/dev/null | wc -l)" -eq 0 ]]; then
+        if [[ "$(find "$romdir/ports" -maxdepth 1 -name "*.sh" | wc -l)" -eq 0 ]]; then
             delSystem "$id" "ports"
         fi
     else

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -218,6 +218,11 @@ function basic_configedit() {
 function advanced_configedit() {
     local config="$1"
 
+    local audio_opts="alsa alsa_thread sdl2"
+    if isPlatform "x11"; then
+        audio_opts+=" pulse"
+    fi
+
     local ini_options=(
         'video_smooth true false'
         'aspect_ratio_index _id_ 4:3 16:9 16:10 16:15 1:1 2:1 3:2 3:4 4:1 4:4 5:4 6:5 7:9 8:3 8:7 19:12 19:14 30:17 32:9 config square core custom'
@@ -225,7 +230,7 @@ function advanced_configedit() {
         "video_shader _file_ *.*p $rootdir/emulators/retroarch/shader"
         'input_overlay_enable true false'
         "input_overlay _file_ *.cfg $rootdir/emulators/retroarch/overlays"
-        'audio_driver alsa alsa_thread sdl2'
+        "audio_driver $audio_opts"
         'video_driver gl dispmanx sdl2 vg'
         'video_fullscreen_x _string_'
         'video_fullscreen_y _string_'

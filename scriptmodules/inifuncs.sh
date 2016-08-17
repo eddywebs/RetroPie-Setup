@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -54,13 +54,6 @@ function iniProcess() {
 
     [[ "$cmd" == "unset" ]] && key="# $key"
 
-    local include
-    # on retroarch configs save the #include line and remove it, so we can add our ini values and re-add the include line(s) at the end
-    if [[ "$file" =~ retroarch\.cfg$ ]]; then
-        include=$(grep "^#include" "$file")
-        sed -i "/^#include/d" "$file"
-    fi
-
     local replace="$key$delim$quote$value$quote"
     if [[ -z "$match" ]]; then
         # add key-value pair
@@ -70,10 +63,7 @@ function iniProcess() {
         sed -i -e "s|$(sedQuote "$match")|$(sedQuote "$replace")|g" "$file"
     fi
 
-    # re-add the include line
-    if [[ -n "$include" ]]; then
-        echo "$include" >>"$file"
-    fi
+    [[ "$file" =~ retroarch\.cfg$ ]] && retroarchIncludeToEnd "$file"
 }
 
 # arg 1: key, arg 2: value, arg 3: file (optional - uses file from iniConfig if not used)
@@ -117,7 +107,24 @@ function iniGet() {
         value_m="\(.*\)"
     fi
 
-    ini_value="$(sed -n "s/^[ |\t]*$key[ |\t]*$delim_strip[ |\t]*$value_m/\1/p" "$file")"
+    ini_value="$(sed -n "s/^[ |\t]*$key[ |\t]*$delim_strip[ |\t]*$value_m/\1/p" "$file" | tail -1)"
+}
+
+# moves the retroarch.cfg include line to the end of a config file
+function retroarchIncludeToEnd() {
+    local config="$1"
+
+    [[ ! -f "$config" ]] && return
+
+    local include
+    # remove the include line
+    include=$(grep "^#include.*retroarch\.cfg" "$config")
+
+    # and re-add it at the end
+    if [[ -n "$include" ]]; then
+        sed -i "/^#include.*retroarch\.cfg/d" "$config"
+        echo "$include" >>"$config"
+    fi
 }
 
 # arg 1: key, arg 2: default value (optional - is 1 if not used)

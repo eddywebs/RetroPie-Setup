@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -44,7 +44,7 @@ function sources_advmame() {
             fi
             # patch advmame to use a fake generated mode with the exact dimensions for fb - avoids need for configuring monitor / clocks.
             # the pi framebuffer doesn't use any of the framebuffer timing configs - it hardware scales from chosen dimensions to actual size
-            patch -p1 <<\_EOF_
+            applyPatch rpi_framebuffer.diff <<\_EOF_
 --- a/advance/linux/vfb.c
 +++ b/advance/linux/vfb.c
 @@ -268,7 +268,7 @@

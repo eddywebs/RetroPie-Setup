@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -60,7 +60,10 @@ function install_sdl1() {
 }
 
 function install_bin_sdl1() {
-    isPlatform "rpi" || fatalError "$mod_id is only available as a binary package for platform rpi"
+    if ! isPlatform "rpi"; then
+        md_ret_errors+=("$md_id is only available as a binary package for platform rpi")
+        return 1
+    fi
     wget "$__binary_url/libsdl1.2debian_1.2.15-$(get_ver_sdl1)rpi_armhf.deb"
     wget "$__binary_url/libsdl1.2-dev_1.2.15-$(get_ver_sdl1)rpi_armhf.deb"
     install_sdl1

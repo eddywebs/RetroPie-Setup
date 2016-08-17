@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -33,6 +33,7 @@
 
 rootdir="/opt/retropie"
 configdir="$rootdir/configs"
+log="/dev/shm/runcommand.log"
 
 runcommand_conf="$configdir/all/runcommand.cfg"
 video_conf="$configdir/all/videomodes.cfg"
@@ -109,16 +110,18 @@ function get_params() {
             # extract emulator from the name (and lowercase it)
             emulator=${BASH_REMATCH[1],,}
             is_sys=0
-            command="\"$4\""
+            command="bash \"$4\""
             system="$3"
         else
             is_sys=1
             system="$3"
             rom="$4"
             if [[ "$command" == "_PORT_" ]]; then
-                emu_conf="$configdir/ports/$system/emulators.cfg"
+                conf_root="$configdir/ports/$system"
+                emu_conf="$conf_root/emulators.cfg"
             else
-                emu_conf="$configdir/$system/emulators.cfg"
+                conf_root="$configdir/$system"
+                emu_conf="$conf_root/emulators.cfg"
             fi
             get_sys_command "$system" "$rom"
         fi
@@ -313,6 +316,9 @@ function main_menu() {
         fi
 
         options+=(X "Launch")
+        if [[ "$command" =~ retroarch ]]; then
+            options+=(L "Launch with verbose logging")
+        fi
         options+=(Q "Exit (without launching)")
 
         if [[ "$command" =~ retroarch ]]; then
@@ -389,6 +395,10 @@ function main_menu() {
                 break
                 ;;
             X)
+                return 0
+                ;;
+            L)
+                command+=" --verbose"
                 return 0
                 ;;
             Q)
@@ -598,7 +608,7 @@ function retroarch_append_config() {
     local conf="/tmp/retroarch.cfg"
     rm -f "$conf"
     touch "$conf"
-    if [[ "$has_tvs" -eq 1 ]]; then
+    if [[ "$has_tvs" -eq 1 && "${mode_new[5]}" -gt 0 ]]; then
         # set video_refresh_rate in our config to the same as the screen refresh
         [[ -n "${mode_new[5]}" ]] && echo "video_refresh_rate = ${mode_new[5]}" >>"$conf"
     fi
@@ -739,7 +749,7 @@ function show_launch() {
         else
             launch_name="$emulator"
         fi
-        DIALOGRC="$configdir/all/runcommand-launch-dialog.cfg" dialog --infobox "\nLaunching $launch_name ...\n\nPress a button to configure\n\nErrors are logged to /tmp/runcommand.log" 9 60
+        DIALOGRC="$configdir/all/runcommand-launch-dialog.cfg" dialog --infobox "\nLaunching $launch_name ...\n\nPress a button to configure\n\nErrors are logged to $log" 9 60
     fi
 }
 
@@ -760,15 +770,25 @@ function check_menu() {
     return $dont_launch
 }
 
-[[ -f "$configdir/all/runcommand-onstart.sh" ]] && bash "$configdir/all/runcommand-onstart.sh"
+# calls script with parameters system, emulator, rom, and commandline
+function user_script() {
+    local script="$configdir/all/$1"
+    if [[ -f "$script" ]]; then
+        bash "$script" "$system" "$emulator" "$rom" "$command" </dev/tty 2>>"$log"
+    fi
+}
+
+get_config
+
+get_params "$@"
 
 # turn off cursor and clear screen
 tput civis
 clear
 
-get_config
-
-get_params "$@"
+rm -f "$log"
+echo -e "$system\n$emulator\n$rom\n$command" >/dev/shm/runcommand.info
+user_script "runcommand-onstart.sh"
 
 get_save_vars
 
@@ -803,9 +823,9 @@ retroarch_append_config
 if [[ "$is_console" -eq 1 || "$is_sys" -eq 0 ]]; then
     # turn cursor on
     tput cnorm
-    eval $command </dev/tty 2>/tmp/runcommand.log
+    eval $command </dev/tty 2>>"$log"
 else
-    eval $command </dev/tty &>/tmp/runcommand.log
+    eval $command </dev/tty &>>"$log"
 fi
 
 clear
@@ -824,8 +844,10 @@ fi
 # reset/restore framebuffer res (if it was changed)
 [[ -n "$fb_new" ]] && restore_fb
 
-tput cnorm
+[[ "$command" =~ retroarch ]] && retroarchIncludeToEnd "$conf_root/retroarch.cfg"
 
-[[ -f "$configdir/all/runcommand-onend.sh" ]] && bash "$configdir/all/runcommand-onend.sh"
+user_script "runcommand-onend.sh"
+
+tput cnorm
 
 exit 0
