@@ -13,9 +13,14 @@ rp_module_id="bluetooth"
 rp_module_desc="Configure Bluetooth Devices"
 rp_module_section="config"
 
+function _update_hook_bluetooth() {
+    # fix config location
+    [[ -f "$configdir/bluetooth.cfg" ]] && mv "$configdir/bluetooth.cfg" "$configdir/all/bluetooth.cfg"
+}
+
 function _get_connect_mode() {
     # get bluetooth config
-    iniConfig "=" '"' "$configdir/bluetooth.cfg"
+    iniConfig "=" '"' "$configdir/all/bluetooth.cfg"
     iniGet "connect_mode"
     if [[ -n "$ini_value" ]]; then
         echo "$ini_value"
@@ -26,7 +31,7 @@ function _get_connect_mode() {
 
 function depends_bluetooth() {
     local depends=(bluetooth python-dbus python-gobject)
-    if isPlatform "rpi3" && hasPackage raspberrypi-bootloader && [[ "$__raspbian_ver" -ge "8" ]]; then
+    if [[ "$__os_id" == "Raspbian" ]] && compareVersions "$__os_release" ge 8; then
         depends+=(pi-bluetooth raspberrypi-sys-mods)
     fi
     getDepends "${depends[@]}"
@@ -340,9 +345,9 @@ _EOF_
             rm -f "$config"
             ;;
     esac
-    iniConfig "=" '"' "$configdir/bluetooth.cfg"
+    iniConfig "=" '"' "$configdir/all/bluetooth.cfg"
     iniSet "connect_mode" "$choice"
-    chown $user:$user "$configdir/bluetooth.cfg"
+    chown $user:$user "$configdir/all/bluetooth.cfg"
 }
 
 function gui_bluetooth() {

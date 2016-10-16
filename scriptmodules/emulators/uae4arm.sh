@@ -16,7 +16,7 @@ rp_module_section="opt"
 rp_module_flags="!x86 !mali"
 
 function depends_uae4arm() {
-    getDepends libsdl1.2-dev libsdl-gfx1.2-dev libsdl-ttf2.0-dev libguichan-dev
+    getDepends libsdl1.2-dev libsdl-gfx1.2-dev libsdl-ttf2.0-dev libguichan-dev libmpg123-dev libxml2-dev libflac-dev
 }
 
 function sources_uae4arm() {
@@ -24,10 +24,11 @@ function sources_uae4arm() {
 }
 
 function build_uae4arm() {
+    make clean
     if isPlatform "rpi1"; then
-        make PLATFORM=rpi1 CPU_FLAGS=""
+        CXXFLAGS="" make PLATFORM=rpi1
     else
-        make PLATFORM=rpi2 CPU_FLAGS="-mfpu=neon"
+        CXXFLAGS="" make PLATFORM=rpi2
     fi
     md_ret_require="$md_build/uae4arm"
 }
@@ -52,7 +53,9 @@ function configure_uae4arm() {
     done
 
     # and kickstart dir (removing old symlinks first)
-    rm -f "$md_inst/kickstarts/"{kick12.rom,kick13.rom,kick20.rom,kick31.rom}
+    if [[ ! -h "$md_inst/kickstarts" ]]; then
+        rm -f "$md_inst/kickstarts/"{kick12.rom,kick13.rom,kick20.rom,kick31.rom}
+    fi
     moveConfigDir "$md_inst/kickstarts" "$biosdir"
 
     cat > "$romdir/amiga/+Start UAE4Arm.sh" << _EOF_

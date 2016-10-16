@@ -84,7 +84,10 @@ function start_joy2key() {
     [[ -z "$__joy2key_dev" ]] && __joy2key_dev="$(ls -1 /dev/input/js* 2>/dev/null | head -n1)"
     # if joy2key.py is installed run it with cursor keys for axis, and enter + tab for buttons 0 and 1
     if [[ -f "$rootdir/supplementary/runcommand/joy2key.py" && -n "$__joy2key_dev" ]] && ! pgrep -f joy2key.py >/dev/null; then
-        "$rootdir/supplementary/runcommand/joy2key.py" "$__joy2key_dev" 1b5b44 1b5b43 1b5b41 1b5b42 0a 09 &
+
+        # call joy2key.py: arguments are curses capability names or hex values starting with '0x'
+        # see: http://pubs.opengroup.org/onlinepubs/7908799/xcurses/terminfo.html
+        "$rootdir/supplementary/runcommand/joy2key.py" "$__joy2key_dev" kcub1 kcuf1 kcuu1 kcud1 0x0a 0x09 &
         __joy2key_pid=$!
     fi
 }
@@ -103,6 +106,7 @@ function get_params() {
     command="$2"
     [[ -z "$command" ]] && exit 1
 
+    console_out=0
     # if the command is _SYS_, or _PORT_ arg 3 should be system name, and arg 4 rom/game, and we look up the configured system for that combination
     if [[ "$command" == "_SYS_" || "$command" == "_PORT_" ]]; then
         # if the rom is actually a special +Start System.sh script, we should launch the script directly.
@@ -127,6 +131,7 @@ function get_params() {
         fi
     else
         is_sys=0
+        console_out=1
         emulator="$3"
         # if we have an emulator name (such as module_id) we use that for storing/loading parameters for video output/dispmanx
         # if the parameter is empty we use the name of the binary (to avoid breakage with out of date emulationstation configs)
@@ -253,17 +258,19 @@ function load_mode_defaults() {
             mode_new_id="$mode_def_rom"
         fi
 
-        # load default framebuffer res for emulator / rom
-        iniGet "$fb_save_emu"
-        if [[ -n "$ini_value" ]]; then
-            fb_def_emu="$ini_value"
-            fb_new="$fb_def_emu"
-        fi
+        if [[ -z "$DISPLAY" ]]; then
+            # load default framebuffer res for emulator / rom
+            iniGet "$fb_save_emu"
+            if [[ -n "$ini_value" ]]; then
+                fb_def_emu="$ini_value"
+                fb_new="$fb_def_emu"
+            fi
 
-        iniGet "$fb_save_rom"
-        if [[ -n "$ini_value" ]]; then
-            fb_def_rom="$ini_value"
-            fb_new="$fb_def_rom"
+            iniGet "$fb_save_rom"
+            if [[ -n "$ini_value" ]]; then
+                fb_def_rom="$ini_value"
+                fb_new="$fb_def_rom"
+            fi
         fi
 
         iniGet "$save_emu_render"
@@ -306,7 +313,7 @@ function main_menu() {
                 8 "Select RetroArch render res for $emulator ($render_res)"
                 9 "Edit custom RetroArch config for this rom"
             )
-        else
+        elif [[ -z "$DISPLAY" ]]; then
             options+=(
                 10 "Select framebuffer res for $emulator ($fb_def_emu)"
                 11 "Select framebuffer res for $emulator + rom ($fb_def_rom)"
@@ -316,14 +323,13 @@ function main_menu() {
         fi
 
         options+=(X "Launch")
-        if [[ "$command" =~ retroarch ]]; then
-            options+=(L "Launch with verbose logging")
-        fi
-        options+=(Q "Exit (without launching)")
 
         if [[ "$command" =~ retroarch ]]; then
+            options+=(L "Launch with verbose logging")
             options+=(Z "Launch with netplay enabled")
         fi
+
+        options+=(Q "Exit (without launching)")
 
         local temp_mode
         if [[ $has_tvs -eq 1 ]]; then
@@ -605,7 +611,7 @@ function retroarch_append_config() {
     # make sure tmp folder exists for unpacking archives
     mkdir -p "/tmp/retroarch"
 
-    local conf="/tmp/retroarch.cfg"
+    local conf="/dev/shm/retroarch.cfg"
     rm -f "$conf"
     touch "$conf"
     if [[ "$has_tvs" -eq 1 && "${mode_new[5]}" -gt 0 ]]; then
@@ -671,6 +677,7 @@ function get_sys_command() {
 
     rom_bn="${rom##*/}"
     rom_bn="${rom_bn%.*}"
+
     appsave=a$(echo "$system$rom" | md5sum | cut -d" " -f1)
 
     if [[ ! -f "$emu_conf" ]]; then
@@ -709,40 +716,57 @@ function get_sys_command() {
     command="${command/\%ROM\%/\"$rom\"}"
     command="${command/\%BASENAME\%/\"$rom_bn\"}"
 
+    # special case to get the last 2 folders for quake games for the -game parameter
+    # remove everything up to /quake/
+    local quake_dir="${rom##*/quake/}"
+    # remove filename
+    local quake_dir="${quake_dir%/*}"
+    command="${command/\%QUAKEDIR\%/\"$quake_dir\"}"
+
     # if it starts with CON: it is a console application (so we don't redirect stdout later)
     if [[ "$command" == CON:* ]]; then
         # remove CON:
         command="${command:4}"
-        is_console=1
-    else
-        is_console=0
+        console_out=1
     fi
 }
 
 function show_launch() {
-    local image=""
-    if [[ "$use_art" -eq 1 ]]; then
-        local image_paths=(
-            "$HOME/RetroPie/roms/$system/images"
-            "$HOME/.emulationstation/downloaded_images/$system"
-        )
+    local images=()
 
-        local path
-        for path in "${image_paths[@]}"; do
-            if [[ -f "$path/${rom_bn}-image.jpg" ]]; then
-                image="$path/${rom_bn}-image.jpg"
-                break
-            elif [[ -f "$path/${rom_bn}-image.png" ]]; then
-                image="$path/${rom_bn}-image.png"
-                break
-            fi
-        done
+    if [[ "$use_art" -eq 1 ]]; then
+        # if using art look for images in paths for es art.
+        images+=(
+            "$HOME/RetroPie/roms/$system/images/${rom_bn}-image"
+            "$HOME/.emulationstation/downloaded_images/$system/${rom_bn}-image"
+        )
     fi
 
-    # check for x/m key pressed to choose a screenmode (x included as it is useful on the picade)
-    if [[ -n "$image" ]]; then
-        fbi -1 -t 2 -noverbose -a "$image" </dev/tty &>/dev/null
-    elif [[ "$disable_menu" -ne 1 ]]; then
+    # look for custom launching images
+    images+=(
+        "$configdir/$system/launching"
+        "$configdir/all/launching"
+    )
+
+    local image
+    local path
+    local ext
+    for path in "${images[@]}"; do
+        for ext in jpg png; do
+            if [[ -f "$path.$ext" ]]; then
+                image="$path.$ext"
+                break 2
+            fi
+        done
+    done
+
+    if [[ -z "$DISPLAY" && -n "$image" ]]; then
+        if [[ "$command" =~ retroarch ]]; then
+            fbi -1 -t 5 -noverbose -a "$image" </dev/tty &>/dev/null &
+        else
+            fbi -1 -t 2 -noverbose -a "$image" </dev/tty &>/dev/null
+        fi
+    elif [[ "$disable_menu" -ne 1 && "$use_art" -ne 1 ]]; then
         local launch_name
         if [[ -n "$rom_bn" ]]; then
             launch_name="$rom_bn ($emulator)"
@@ -755,6 +779,7 @@ function show_launch() {
 
 function check_menu() {
     start_joy2key
+    # check for key pressed to enter configuration
     IFS= read -s -t 2 -N 1 key </dev/tty
     if [[ -n "$key" ]]; then
         if [[ $has_tvs -eq 1 ]]; then
@@ -819,11 +844,13 @@ config_dispmanx "$save_emu"
 
 retroarch_append_config
 
-# launch the command - don't redirect stdout when using console output (CON: prefix) or when not using _SYS_
-if [[ "$is_console" -eq 1 || "$is_sys" -eq 0 ]]; then
+# launch the command
+echo -e "Parameters: $@\nExecuting: $command" >>"$log"
+if [[ "$console_out" -eq 1 ]]; then
     # turn cursor on
     tput cnorm
     eval $command </dev/tty 2>>"$log"
+    tput civis
 else
     eval $command </dev/tty &>>"$log"
 fi
@@ -847,7 +874,5 @@ fi
 [[ "$command" =~ retroarch ]] && retroarchIncludeToEnd "$conf_root/retroarch.cfg"
 
 user_script "runcommand-onend.sh"
-
-tput cnorm
 
 exit 0

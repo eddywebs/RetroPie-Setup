@@ -10,31 +10,26 @@
 #
 
 rp_module_id="scraper"
-rp_module_desc="Scraper for EmulationStation by Steven Selph" 
+rp_module_desc="Scraper for EmulationStation by Steven Selph"
 rp_module_section="config"
 
 function depends_scraper() {
-    if [[ "$__raspbian_ver" -gt "7" ]]; then
-        getDepends golang
-    fi
+    [[ "$__os_codename" == "wheezy" ]] && return
+    getDepends golang
 }
 
 function sources_scraper() {
-    if [[ "$__raspbian_ver" -gt "7" ]]; then
-        GOPATH="$md_build" go get github.com/sselph/scraper
-    fi
+    [[ "$__os_codename" == "wheezy" ]] && return
+    GOPATH="$md_build" go get github.com/sselph/scraper
 }
 
 function build_scraper() {
-    if [[ "$__raspbian_ver" -gt "7" ]]; then
-        GOPATH="$md_build" go build github.com/sselph/scraper
-    fi
+    [[ "$__os_codename" == "wheezy" ]] && return
+    GOPATH="$md_build" go build github.com/sselph/scraper
 }
 
 function install_scraper() {
-    if [[ "$__raspbian_ver" -gt "7" ]]; then
-        md_ret_files=(scraper)
-    elif isPlatform "arm"; then
+    if [[ "$__os_codename" == "wheezy" ]] && isPlatform "arm"; then
         local ver="$(latest_ver_scraper)"
         mkdir -p "$md_build"
         local name="scraper_rpi.zip"
@@ -42,6 +37,8 @@ function install_scraper() {
         wget -O "$md_build/scraper.zip" "https://github.com/sselph/scraper/releases/download/$ver/$name"
         unzip -o "$md_build/scraper.zip" -d "$md_inst"
         rm -f "$md_build/scraper.zip"
+    else
+        md_ret_files=(scraper)
     fi
 }
 
@@ -103,7 +100,7 @@ function scrape_scraper() {
     if [[ "$append_only" -eq 1 ]]; then
         params+=(-append)
     fi
-    
+
     [[ "$system" =~ ^mame-|arcade|fba|neogeo ]] && params+=(-mame -mame_img t,m,s)
     sudo -u $user "$md_inst/scraper" ${params[@]}
 }
@@ -133,7 +130,7 @@ function scrape_chosen_scraper() {
 
     local cmd=(dialog --separate-output --backtitle "$__backtitle" --checklist "Select ROM Folders" 22 76 16)
     local choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
-    
+
     [[ ${#choices[@]} -eq 0 ]] && return
 
     local choice
@@ -155,7 +152,6 @@ function gui_scraper() {
     fi
 
     iniConfig " = " '"' "$configdir/all/scraper.cfg"
-    chown $user:$user "$configdir/all/scraper.cfg"
     eval $(loadModuleConfig \
         'use_thumbs=1' \
         'max_width=400' \
@@ -164,14 +160,15 @@ function gui_scraper() {
         'append_only=0' \
         'use_rom_folder=0' \
     )
+    chown $user:$user "$configdir/all/scraper.cfg"
 
     local default
     while true; do
         local ver=$(get_ver_scraper)
         [[ -z "$ver" ]] && ver="v(Git)"
         local cmd=(dialog --backtitle "$__backtitle" --default-item "$default" --menu "Scraper $ver by Steven Selph" 22 76 16)
-        local options=( 
-            1 "Scrape all systems" 
+        local options=(
+            1 "Scrape all systems"
             2 "Scrape chosen systems"
         )
 
@@ -182,13 +179,13 @@ function gui_scraper() {
         fi
 
         options+=(4 "Max image width ($max_width)")
-        
+
         if [[ "$use_gdb_scraper" -eq 1 ]]; then
             options+=(5 "Scraper (thegamesdb)")
         else
             options+=(5 "Scraper (OpenVGDB)")
         fi
-        
+
         if [[ "$rom_name" -eq 0 ]]; then
             options+=(6 "ROM Names (No-Intro)")
         elif [[ "$rom_name" -eq 1 ]]; then
@@ -210,15 +207,15 @@ function gui_scraper() {
         fi
 
         options+=(U "Update scraper to the latest version")
-        local choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty) 
+        local choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
         if [[ -n "$choice" ]]; then
             default="$choice"
-            case $choice in 
-                1) 
+            case $choice in
+                1)
                     rp_callModule "$md_id" scrape_all $use_thumbs $max_width $use_rom_folder
                     printMsgs "dialog" "ROMS have been scraped."
                     ;;
-                2) 
+                2)
                     rp_callModule "$md_id" scrape_chosen $use_thumbs $max_width $use_rom_folder
                     printMsgs "dialog" "ROMS have been scraped."
                     ;;
@@ -251,8 +248,8 @@ function gui_scraper() {
                     rp_callModule "$md_id"
                     ;;
             esac
-        else 
-            break 
-        fi 
-    done 
+        else
+            break
+        fi
+    done
 }

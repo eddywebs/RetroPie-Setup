@@ -308,7 +308,7 @@ function rp_createBin() {
     printHeading "Creating binary archive for $md_desc"
     if [[ -d "$rootdir/$md_type/$md_id" ]]; then
         local archive="$md_id.tar.gz"
-        local dest="$__tmpdir/archives/$__raspbian_name/$__platform/$md_type"
+        local dest="$__tmpdir/archives/$__os_id/$__platform/$md_type"
         rm -f "$dest/$archive"
         mkdir -p "$dest"
         tar cvzf "$dest/$archive" -C "$rootdir/$md_type" "$md_id"
@@ -372,7 +372,7 @@ function rp_registerModule() {
         __mod_desc["$module_idx"]="$rp_module_desc"
         __mod_help["$module_idx"]="$rp_module_help"
         __mod_section["$module_idx"]="$rp_module_section"
-        __mod_flags["$module_idx"]="$rp_module_flags" 
+        __mod_flags["$module_idx"]="$rp_module_flags"
 
         # id to idx mapping via associative array
         __mod_id_to_idx["$rp_module_id"]="$module_idx"
@@ -390,7 +390,7 @@ function rp_registerModuleDir() {
 
 function rp_registerAllModules() {
     rp_registerModuleDir 100 "emulators"
-    rp_registerModuleDir 200 "libretrocores" 
+    rp_registerModuleDir 200 "libretrocores"
     rp_registerModuleDir 300 "ports"
     rp_registerModuleDir 800 "supplementary"
     rp_registerModuleDir 900 "admin"

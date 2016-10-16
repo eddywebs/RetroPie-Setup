@@ -10,7 +10,7 @@
 #
 
 rp_module_id="minecraft"
-rp_module_desc="Minecraft"
+rp_module_desc="Minecraft - Pi Edition"
 rp_module_section="exp"
 rp_module_flags="!mali !x86"
 
@@ -19,7 +19,12 @@ function depends_minecraft() {
 }
 
 function install_bin_minecraft() {
-    wget -O- -q https://s3.amazonaws.com/assets.minecraft.net/pi/minecraft-pi-0.1.1.tar.gz | tar -xvz --strip-components=1 -C "$md_inst"
+    [[ -f "$md_inst/minecraft-pi" ]] && rm -rf "$md_inst/"*
+    aptInstall minecraft-pi
+}
+
+function remove_minecraft() {
+    aptRemove minecraft-pi
 }
 
 function configure_minecraft() {
@@ -29,9 +34,7 @@ function configure_minecraft() {
 #!/bin/bash
 xset -dpms s off s noblank
 matchbox-window-manager &
-$md_inst/minecraft-pi
+/usr/bin/minecraft-pi
 _EOF_
     chmod +x "$md_inst/Minecraft.sh"
-
-
 }

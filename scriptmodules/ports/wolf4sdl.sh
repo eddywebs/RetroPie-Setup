@@ -23,10 +23,10 @@ function sources_wolf4sdl() {
 }
 
 function get_opts_wolf4sdl() {
+    echo 'wolf4sdl-sw-v14 -DCARMACIZED -DUPLOAD' # shareware v1.4
     echo 'wolf4sdl-3dr-v14 -DCARMACIZED' # 3d realms / apogee v1.4 full
     echo 'wolf4sdl-gt-v14 -DCARMACIZED -DGOODTIMES' # gt / id / activision v1.4 full
     echo 'wolf4sdl-spear -DCARMACIZED -DGOODTIMES -DSPEAR' # spear of destiny
-    echo 'wolf4sdl-sw-v14 -DCARMACIZED -DUPLOAD' # shareware v1.4
 }
 
 function get_bins_wolf4sdl() {
@@ -83,7 +83,7 @@ function configure_wolf4sdl() {
 
     setDispmanx "$md_id" 1
     configure_dispmanx_on_wolf4sdl
-    
+
     [[ "$md_mode" == "install" ]] && game_data_wolf4sdl
 }
 

@@ -22,7 +22,7 @@ function depends_uae4all() {
 function sources_uae4all() {
     gitPullOrClone "$md_build" https://github.com/RetroPie/uae4all2.git retropie
     mkdir guichan
-    wget -O- -q https://guichan.googlecode.com/files/guichan-0.8.2.tar.gz | tar -xvz --strip-components=1 -C "guichan"
+    wget -O- -q "$__archive_url/guichan-0.8.2.tar.gz" | tar -xvz --strip-components=1 -C "guichan"
     cd guichan
     # fix from https://github.com/sphaero/guichan
     applyPatch guichan.diff <<\_EOF_
@@ -112,7 +112,9 @@ function configure_uae4all() {
     moveConfigDir "$md_inst/roms" "$romdir/amiga"
 
     # and kickstart dir (removing old symlinks first)
-    rm -f "$md_inst/kickstarts/"{kick12.rom,kick13.rom,kick20.rom,kick31.rom}
+    if [[ ! -h "$md_inst/kickstarts" ]]; then
+        rm -f "$md_inst/kickstarts/"{kick12.rom,kick13.rom,kick20.rom,kick31.rom}
+    fi
     moveConfigDir "$md_inst/kickstarts" "$biosdir"
 
     if [[ "$md_mode" == "install" ]]; then

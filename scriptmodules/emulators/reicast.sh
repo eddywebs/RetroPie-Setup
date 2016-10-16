@@ -16,8 +16,8 @@ rp_module_section="opt"
 rp_module_flags="!armv6 !mali"
 
 function depends_reicast() {
-    local depends=(libsdl1.2-dev python-dev python-pip alsa-oss)
-    [[ "$__raspbian_ver" -ge "8" ]] && depends+=(libevdev-dev)
+    local depends=(libsdl1.2-dev python-dev python-pip alsa-oss python-setuptools)
+    compareVersions "$__os_release" ge 8 && depends+=(libevdev-dev)
     getDepends "${depends[@]}"
     pip install evdev
 }
@@ -91,4 +91,32 @@ function configure_reicast() {
     fi
 
     addAutoConf reicast_input 1
+}
+
+function input_reicast() {
+    local temp_file="$(mktemp)"
+    cd "$md_inst/bin"
+    ./reicast-joyconfig -f "$temp_file" >/dev/tty
+    iniConfig " = " "" "$temp_file"
+    iniGet "mapping_name"
+    local mapping_file="$configdir/dreamcast/mappings/controller_${ini_value// /}.cfg"
+    mv "$temp_file" "$mapping_file"
+    chown $user:$user "$mapping_file"
+}
+
+function gui_reicast() {
+    while true; do
+        local options=(
+            1 "Configure input devices for Reicast"
+        )
+        local cmd=(dialog --backtitle "$__backtitle" --menu "Choose an option" 22 76 16)
+        local choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+        [[ -z "$choice" ]] && break
+        case "$choice" in
+            1)
+                clear
+                input_reicast
+                ;;
+        esac
+    done
 }

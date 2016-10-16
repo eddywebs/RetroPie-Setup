@@ -38,7 +38,7 @@ function build_uqm() {
     cd uqm-0.6.2.dfsg
     dpkg-buildpackage -us -uc
 }
- 
+
 function install_uqm() {
     cp -v *.deb "$md_inst"
     # uqm is missing on raspbian jessie
@@ -60,6 +60,10 @@ function install_bin_uqm() {
     else
         aptInstall uqm uqm-content uqm-music uqm-voice
     fi
+}
+
+function remove_uqm() {
+    aptRemove uqm uqm-content uqm-music uqm-voice
 }
 
 function configure_uqm() {
