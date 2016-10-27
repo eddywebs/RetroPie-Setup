@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -15,6 +15,14 @@ rp_module_section="core"
 
 function _get_input_cfg_emulationstation() {
     echo "$configdir/all/emulationstation/es_input.cfg"
+}
+
+function _update_hook_emulationstation() {
+    # make sure the input configuration scripts and launch script are always up to date
+    if rp_isInstalled "$md_idx"; then
+        copy_inputscripts_emulationstation
+        install_launch_emulationstation
+    fi
 }
 
 function depends_emulationstation() {
@@ -80,6 +88,57 @@ function init_input_emulationstation() {
     chown $user:$user "$es_config"
 }
 
+function copy_inputscripts_emulationstation() {
+    mkdir -p "$md_inst/scripts"
+
+    cp -r "$md_data/"* "$md_inst/scripts/"
+    chmod +x "$md_inst/scripts/inputconfiguration.sh"
+}
+
+function install_launch_emulationstation() {
+    cat > /usr/bin/emulationstation << _EOF_
+#!/bin/bash
+
+if [[ \$(id -u) -eq 0 ]]; then
+    echo "emulationstation should not be run as root. If you used 'sudo emulationstation' please run without sudo."
+    exit 1
+fi
+
+if [[ "\$(uname --machine)" != *86* ]]; then
+    if [[ -n "\$(pidof X)" ]]; then
+        echo "X is running. Please shut down X in order to mitigate problems with losing keyboard input. For example, logout from LXDE."
+        exit 1
+    fi
+fi
+
+clear
+tput civis
+"$md_inst/emulationstation.sh" "\$@"
+reset
+
+_EOF_
+    chmod +x /usr/bin/emulationstation
+
+    if isPlatform "x11"; then
+        mkdir -p /usr/local/share/{icons,applications}
+        cp "$md_data/retropie.svg" "/usr/local/share/icons/"
+        cat > /usr/local/share/applications/retropie.desktop << _EOF_
+[Desktop Entry]
+Type=Application
+Exec=gnome-terminal --full-screen --hide-menubar -e emulationstation
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Name[de_DE]=RetroPie
+Name=rpie
+Comment[de_DE]=RetroPie
+Comment=retropie
+Icon=/usr/local/share/icons/retropie.svg
+Categories=Game
+_EOF_
+    fi
+}
+
 function clear_input_emulationstation() {
     rm "$(_get_input_cfg_emulationstation)"
     init_input_emulationstation
@@ -100,30 +159,9 @@ function configure_emulationstation() {
 
     init_input_emulationstation
 
-    mkdir -p "$md_inst/scripts"
+    copy_inputscripts_emulationstation
 
-    cp -rv "$scriptdir/scriptmodules/$md_type/emulationstation/"* "$md_inst/scripts/"
-    chmod +x "$md_inst/scripts/inputconfiguration.sh"
-
-    cat > /usr/bin/emulationstation << _EOF_
-#!/bin/bash
-
-if [[ \$(id -u) -eq 0 ]]; then
-    echo "emulationstation should not be run as root. If you used 'sudo emulationstation' please run without sudo."
-    exit 1
-fi
-
-if [[ "\$(uname --machine)" != *86* ]]; then
-    if [[ -n "\$(pidof X)" ]]; then
-        echo "X is running. Please shut down X in order to mitigate problems with losing keyboard input. For example, logout from LXDE."
-        exit 1
-    fi
-fi
-
-clear
-"$md_inst/emulationstation.sh" "\$@"
-
-_EOF_
+    install_launch_emulationstation
 
     if isPlatform "rpi"; then
         # make sure that ES has enough GPU memory
@@ -134,47 +172,62 @@ _EOF_
         iniSet "overscan_scale" 1
     fi
 
-    if isPlatform "x11"; then
-        mkdir -p /usr/local/share/icons
-        mkdir -p /usr/local/share/applications
-        cp "$scriptdir/scriptmodules/$md_type/emulationstation/retropie.svg" "/usr/local/share/icons/"
-        cat > /usr/local/share/applications/retropie.desktop << _EOF_
-[Desktop Entry]
-Type=Application
-Exec=gnome-terminal --full-screen -e emulationstation
-Hidden=false
-NoDisplay=false
-X-GNOME-Autostart-enabled=true
-Name[de_DE]=RetroPie
-Name=rpie
-Comment[de_DE]=RetroPie
-Comment=retropie
-Icon=/usr/local/share/icons/retropie.svg
-Categories=Game
-_EOF_
-    fi
-
-    chmod +x /usr/bin/emulationstation
-
     mkdir -p "/etc/emulationstation"
-    
+
     # ensure we have a default theme
     rp_callModule esthemes install_theme
-    
-    addAutoConf es_swap_a_b 0
+
+    addAutoConf "es_swap_a_b" 0
+    addAutoConf "disable" 0
 }
 
 function gui_emulationstation() {
-    local options=(
-        1 "Clear/Reset Emulation Station input configuration"
-    )
-    local cmd=(dialog --backtitle "$__backtitle" --menu "Choose an option" 22 76 16)
-    local choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+    local es_swap=0
+    getAutoConf "es_swap_a_b" && es_swap=1
 
-    case "$choice" in
-        1)
-            clear_input_emulationstation
-            printMsgs "dialog" "$(_get_input_cfg_emulationstation) has been reset to default values."
-            ;;
-    esac
+    local disable=0
+    getAutoConf "disable" && disable=1
+
+    local default
+    local options
+    while true; do
+        local options=(
+            1 "Clear/Reset Emulation Station input configuration"
+        )
+
+        if [[ "$disable" -eq 0 ]]; then
+            options+=(2 "Auto Configuration (Currently: Enabled)")
+        else
+            options+=(2 "Auto Configuration (Currently: Disabled)")
+        fi
+
+        if [[ "$es_swap" -eq 0 ]]; then
+            options+=(3 "Swap A/B Buttons in ES (Currently: Default)")
+        else
+            options+=(3 "Swap A/B Buttons in ES (Currently: Swapped)")
+        fi
+
+        local cmd=(dialog --backtitle "$__backtitle" --default-item "$default" --menu "Choose an option" 22 76 16)
+        local choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+        [[ -z "$choice" ]] && break
+        default="$choice"
+
+        case "$choice" in
+            1)
+                if dialog --defaultno --yesno "Are you sure you want to reset the Emulation Station controller configuration ? This will wipe all controller configs for ES and it will prompt to reconfigure on next start" 22 76 2>&1 >/dev/tty; then
+                    clear_input_emulationstation
+                    printMsgs "dialog" "$(_get_input_cfg_emulationstation) has been reset to default values."
+                fi
+                ;;
+            2)
+                disable="$((disable ^ 1))"
+                setAutoConf "disable" "$disable"
+                ;;
+            3)
+                es_swap="$((es_swap ^ 1))"
+                setAutoConf "es_swap_a_b" "$es_swap"
+                printMsgs "dialog" "You will need to reconfigure you controller in Emulation Station for the changes to take effect."
+                ;;
+        esac
+    done
 }

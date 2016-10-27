@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -45,7 +45,7 @@ function configure_gngeopi() {
 
     # move old config to new location
     moveConfigDir "$home/.gngeo" "$md_conf_root/neogeo"
-    
+
     if [[ ! -f "$md_conf_root/neogeo/gngeorc" ]]; then
         # add default controls for keyboard p1/p2
         cat > "$md_conf_root/neogeo/gngeorc" <<\_EOF_

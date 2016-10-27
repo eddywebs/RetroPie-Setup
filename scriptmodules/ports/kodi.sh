@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
 rp_module_id="kodi"
 rp_module_desc="Kodi - Open source home theatre software"
 rp_module_section="opt"
-rp_module_flags="!mali"
+rp_module_flags="!mali !osmc"
 
 function _update_hook_kodi() {
     # to show as installed in retropie-setup 4.x
@@ -35,6 +35,8 @@ function depends_kodi() {
             apt-key del 4096R/BAA567BB >/dev/null
         fi
     fi
+
+    addUdevInputRules
 }
 
 function install_bin_kodi() {
@@ -53,8 +55,4 @@ function configure_kodi() {
     delSystem "$md_id" "kodi"
 
     addPort "$md_id" "kodi" "Kodi" "kodi"
-
-    if [[ ! -f /etc/udev/rules.d/99-input.rules ]]; then
-        echo 'SUBSYSTEM=="input", GROUP="input", MODE="0660"' > /etc/udev/rules.d/99-input.rules
-    fi
 }

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -22,10 +22,10 @@ function depends_uae4all() {
 function sources_uae4all() {
     gitPullOrClone "$md_build" https://github.com/RetroPie/uae4all2.git retropie
     mkdir guichan
-    wget -O- -q https://guichan.googlecode.com/files/guichan-0.8.2.tar.gz | tar -xvz --strip-components=1 -C "guichan"
+    wget -O- -q "$__archive_url/guichan-0.8.2.tar.gz" | tar -xvz --strip-components=1 -C "guichan"
     cd guichan
     # fix from https://github.com/sphaero/guichan
-    patch -p1 <<\_EOF_
+    applyPatch guichan.diff <<\_EOF_
 diff --git a/src/widget.cpp b/src/widget.cpp
 index 7dfc7e1..97978a7 100644
 --- a/src/widget.cpp
@@ -112,7 +112,9 @@ function configure_uae4all() {
     moveConfigDir "$md_inst/roms" "$romdir/amiga"
 
     # and kickstart dir (removing old symlinks first)
-    rm -f "$md_inst/kickstarts/"{kick12.rom,kick13.rom,kick20.rom,kick31.rom}
+    if [[ ! -h "$md_inst/kickstarts" ]]; then
+        rm -f "$md_inst/kickstarts/"{kick12.rom,kick13.rom,kick20.rom,kick31.rom}
+    fi
     moveConfigDir "$md_inst/kickstarts" "$biosdir"
 
     if [[ "$md_mode" == "install" ]]; then
@@ -135,5 +137,5 @@ _EOF_
         rm -f "$biosdir/aros-amiga-m68k"*
     fi
 
-    addSystem 1 "$md_id" "amiga" "$romdir/amiga/+Start\ UAE4All.sh" "Amiga" ".sh"
+    addSystem 1 "$md_id" "amiga" "bash $romdir/amiga/+Start\ UAE4All.sh" "Amiga" ".sh"
 }

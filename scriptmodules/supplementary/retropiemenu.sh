@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -14,8 +14,12 @@ rp_module_desc="RetroPie configuration menu for EmulationStation"
 rp_module_section="core"
 
 function _update_hook_retropiemenu() {
-    # to show as installed in retropie-setup 4.x
-    [[ -f "$home/.emulationstation/gamelists/retropie/gamelist.xml" ]] && mkdir -p "$md_inst"
+    # to show as installed when upgrading to retropie-setup 4.x
+    if ! rp_isInstalled "$md_idx" && [[ -f "$home/.emulationstation/gamelists/retropie/gamelist.xml" ]]; then
+        mkdir -p "$md_inst"
+        # to stop older scripts removing when launching from retropie menu in ES due to not using exec or exiting after running retropie-setup from this module
+        touch "$md_inst/.retropie"
+    fi
 }
 
 function depends_retropiemenu() {
@@ -56,8 +60,8 @@ function install_bin_retropiemenu()
 
     # add the gameslist / icons
     mkdir -p "$home/.emulationstation/gamelists/retropie/"
-    cp -v "$scriptdir/scriptmodules/$md_type/retropiemenu/gamelist.xml" "$home/.emulationstation/gamelists/retropie/gamelist.xml"
-    cp -Rv "$scriptdir/scriptmodules/$md_type/retropiemenu/icons" "$rpdir/"
+    cp -v "$md_data/gamelist.xml" "$home/.emulationstation/gamelists/retropie/gamelist.xml"
+    cp -Rv "$md_data/icons" "$rpdir/"
 
     chown -R $user:$user "$rpdir"
     chown -RL $user:$user "$home/.emulationstation"
@@ -80,9 +84,11 @@ function launch_retropiemenu() {
             cp "$configdir/all/retroarch.cfg" "$configdir/all/retroarch.cfg.bak"
             chown $user:$user "$configdir/all/retroarch.cfg.bak"
             su $user -c "\"$emudir/retroarch/bin/retroarch\" --menu --config \"$configdir/all/retroarch.cfg\""
+            iniConfig " = " '"' "$configdir/all/retroarch.cfg"
+            iniSet "config_save_on_exit" "false"
             ;;
         rpsetup.rp)
-            "$scriptdir/retropie_setup.sh"
+            rp_callModule setup gui
             ;;
         raspiconfig.rp)
             raspi-config

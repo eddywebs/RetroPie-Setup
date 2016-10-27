@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -72,27 +72,26 @@ function rp_callModule() {
     # shift the function parameters left so $@ will contain any additional parameters which we can use in modules
     shift 2
 
-    # if index get mod_id from array else try and find it (we should probably use bash associative arrays for efficiency)
+    # if index get mod_id from array else we look it up
     local md_id
     local md_idx
     if [[ "$req_id" =~ ^[0-9]+$ ]]; then
-        md_id="${__mod_id[$req_id]}"
+        md_id="$(rp_getIdFromIdx $req_id)"
         md_idx="$req_id"
     else
         md_idx="$(rp_getIdxFromId $req_id)"
-        [[ -n "$md_idx" ]] && md_id="$req_id"
+        md_id="$req_id"
     fi
 
-    if [[ -z "$md_id" ]]; then
-        fatalError "No module '$req_id' found for platform $__platform"
+    if [[ -z "$md_id" || -z "$md_idx" ]]; then
+        printMsgs "console" "No module '$req_id' found for platform $__platform"
+        return 2
     fi
 
     # automatically build/install module if no parameters are given
     if [[ -z "$mode" ]]; then
         for mode in depends sources build install configure clean; do
-            if [[ "$mode" == "install" ]] || fnExists "${mode}_${md_id}"; then
-                rp_callModule "$md_idx" "$mode" || return 1
-            fi
+            rp_callModule "$md_idx" "$mode" || return 1
         done
         return 0
     fi
@@ -104,6 +103,7 @@ function rp_callModule() {
     local md_flags="${__mod_flags[$md_idx]}"
     local md_build="$__builddir/$md_id"
     local md_inst="$rootdir/$md_type/$md_id"
+    local md_data="$scriptdir/scriptmodules/$md_type/$md_id"
     local md_mode="install"
 
     # set md_conf_root to $configdir and to $configdir/ports for ports
@@ -208,7 +208,8 @@ function rp_callModule() {
                 pushed=$?
                 "configure_${md_id}" remove
             fi
-            rm -rvf "$md_inst"
+            rm -rf "$md_inst"
+            printMsgs "console" "Removed directory $md_inst"
             ;;
         install)
             if fnExists "$function"; then
@@ -220,8 +221,7 @@ function rp_callModule() {
         install_bin)
             if fnExists "install_bin_${md_id}"; then
                 if ! "$function" "$@"; then
-                    # if it failed to install remove the install folder if it exists
-                    rm -rf "$md_inst"
+                    md_ret_errors+=("Unable to install binary for $md_id")
                 fi
             else
                 if rp_hasBinary "$md_idx"; then
@@ -238,7 +238,6 @@ function rp_callModule() {
     esac
 
     local file
-    # some errors were returned. append to global errors and return
     if [[ "${#md_ret_errors}" -eq 0 ]]; then
         # check if any required files are found
         if [[ -n "$md_ret_require" ]]; then
@@ -267,10 +266,16 @@ function rp_callModule() {
 
     [[ "$pushed" -eq 0 ]] && popd
 
+    # some errors were returned.
     if [[ "${#md_ret_errors[@]}" -gt 0 ]]; then
+        # if sources fails make sure we clean up
+        if [[ "$mode" == "sources" ]]; then
+            rp_callModule "$md_idx" clean
+        fi
         # remove install folder if there is an error
         [[ -d "$md_inst" ]] && find "$md_inst" -maxdepth 0 -empty -exec rmdir {} \;
         printMsgs "console" "${md_ret_errors[@]}" >&2
+        # append to global errors and return an error
         __ERRMSGS+=("${md_ret_errors[@]}")
         return 1
     fi
@@ -305,7 +310,7 @@ function rp_createBin() {
     printHeading "Creating binary archive for $md_desc"
     if [[ -d "$rootdir/$md_type/$md_id" ]]; then
         local archive="$md_id.tar.gz"
-        local dest="$__tmpdir/archives/$__raspbian_name/$__platform/$md_type"
+        local dest="$__tmpdir/archives/$__os_codename/$__platform/$md_type"
         rm -f "$dest/$archive"
         mkdir -p "$dest"
         tar cvzf "$dest/$archive" -C "$rootdir/$md_type" "$md_id"
@@ -323,6 +328,7 @@ function rp_installModule() {
             rp_callModule "$idx" "$mode" || return 1
         done
     else
+        rp_callModule "$idx" clean
         rp_callModule "$idx" || return 1
     fi
     return 0
@@ -368,7 +374,7 @@ function rp_registerModule() {
         __mod_desc["$module_idx"]="$rp_module_desc"
         __mod_help["$module_idx"]="$rp_module_help"
         __mod_section["$module_idx"]="$rp_module_section"
-        __mod_flags["$module_idx"]="$rp_module_flags" 
+        __mod_flags["$module_idx"]="$rp_module_flags"
 
         # id to idx mapping via associative array
         __mod_id_to_idx["$rp_module_id"]="$module_idx"
@@ -386,7 +392,7 @@ function rp_registerModuleDir() {
 
 function rp_registerAllModules() {
     rp_registerModuleDir 100 "emulators"
-    rp_registerModuleDir 200 "libretrocores" 
+    rp_registerModuleDir 200 "libretrocores"
     rp_registerModuleDir 300 "ports"
     rp_registerModuleDir 800 "supplementary"
     rp_registerModuleDir 900 "admin"
@@ -394,6 +400,10 @@ function rp_registerAllModules() {
 
 function rp_getIdxFromId() {
     echo "${__mod_id_to_idx[$1]}"
+}
+
+function rp_getIdFromIdx() {
+    echo "${__mod_id[$1]}"
 }
 
 function rp_getSectionIds() {

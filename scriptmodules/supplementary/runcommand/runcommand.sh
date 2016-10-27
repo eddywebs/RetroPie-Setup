@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -33,6 +33,7 @@
 
 rootdir="/opt/retropie"
 configdir="$rootdir/configs"
+log="/dev/shm/runcommand.log"
 
 runcommand_conf="$configdir/all/runcommand.cfg"
 video_conf="$configdir/all/videomodes.cfg"
@@ -79,10 +80,14 @@ function get_config() {
 
 function start_joy2key() {
     [[ "$disable_joystick" -eq 1 ]] && return
+    # get the first joystick device (if not already set)
+    [[ -z "$__joy2key_dev" ]] && __joy2key_dev="$(ls -1 /dev/input/js* 2>/dev/null | head -n1)"
     # if joy2key.py is installed run it with cursor keys for axis, and enter + tab for buttons 0 and 1
-    __joy2key_dev=$(ls -1 /dev/input/js* 2>/dev/null | head -n1)
     if [[ -f "$rootdir/supplementary/runcommand/joy2key.py" && -n "$__joy2key_dev" ]] && ! pgrep -f joy2key.py >/dev/null; then
-        "$rootdir/supplementary/runcommand/joy2key.py" "$__joy2key_dev" 1b5b44 1b5b43 1b5b41 1b5b42 0a 09 &
+
+        # call joy2key.py: arguments are curses capability names or hex values starting with '0x'
+        # see: http://pubs.opengroup.org/onlinepubs/7908799/xcurses/terminfo.html
+        "$rootdir/supplementary/runcommand/joy2key.py" "$__joy2key_dev" kcub1 kcuf1 kcuu1 kcud1 0x0a 0x09 &
         __joy2key_pid=$!
     fi
 }
@@ -101,6 +106,7 @@ function get_params() {
     command="$2"
     [[ -z "$command" ]] && exit 1
 
+    console_out=0
     # if the command is _SYS_, or _PORT_ arg 3 should be system name, and arg 4 rom/game, and we look up the configured system for that combination
     if [[ "$command" == "_SYS_" || "$command" == "_PORT_" ]]; then
         # if the rom is actually a special +Start System.sh script, we should launch the script directly.
@@ -108,21 +114,24 @@ function get_params() {
             # extract emulator from the name (and lowercase it)
             emulator=${BASH_REMATCH[1],,}
             is_sys=0
-            command="\"$4\""
+            command="bash \"$4\""
             system="$3"
         else
             is_sys=1
             system="$3"
             rom="$4"
             if [[ "$command" == "_PORT_" ]]; then
-                emu_conf="$configdir/ports/$system/emulators.cfg"
+                conf_root="$configdir/ports/$system"
+                emu_conf="$conf_root/emulators.cfg"
             else
-                emu_conf="$configdir/$system/emulators.cfg"
+                conf_root="$configdir/$system"
+                emu_conf="$conf_root/emulators.cfg"
             fi
             get_sys_command "$system" "$rom"
         fi
     else
         is_sys=0
+        console_out=1
         emulator="$3"
         # if we have an emulator name (such as module_id) we use that for storing/loading parameters for video output/dispmanx
         # if the parameter is empty we use the name of the binary (to avoid breakage with out of date emulationstation configs)
@@ -249,17 +258,19 @@ function load_mode_defaults() {
             mode_new_id="$mode_def_rom"
         fi
 
-        # load default framebuffer res for emulator / rom
-        iniGet "$fb_save_emu"
-        if [[ -n "$ini_value" ]]; then
-            fb_def_emu="$ini_value"
-            fb_new="$fb_def_emu"
-        fi
+        if [[ -z "$DISPLAY" ]]; then
+            # load default framebuffer res for emulator / rom
+            iniGet "$fb_save_emu"
+            if [[ -n "$ini_value" ]]; then
+                fb_def_emu="$ini_value"
+                fb_new="$fb_def_emu"
+            fi
 
-        iniGet "$fb_save_rom"
-        if [[ -n "$ini_value" ]]; then
-            fb_def_rom="$ini_value"
-            fb_new="$fb_def_rom"
+            iniGet "$fb_save_rom"
+            if [[ -n "$ini_value" ]]; then
+                fb_def_rom="$ini_value"
+                fb_new="$fb_def_rom"
+            fi
         fi
 
         iniGet "$save_emu_render"
@@ -302,7 +313,7 @@ function main_menu() {
                 8 "Select RetroArch render res for $emulator ($render_res)"
                 9 "Edit custom RetroArch config for this rom"
             )
-        else
+        elif [[ -z "$DISPLAY" ]]; then
             options+=(
                 10 "Select framebuffer res for $emulator ($fb_def_emu)"
                 11 "Select framebuffer res for $emulator + rom ($fb_def_rom)"
@@ -312,11 +323,13 @@ function main_menu() {
         fi
 
         options+=(X "Launch")
-        options+=(Q "Exit (without launching)")
 
         if [[ "$command" =~ retroarch ]]; then
+            options+=(L "Launch with verbose logging")
             options+=(Z "Launch with netplay enabled")
         fi
+
+        options+=(Q "Exit (without launching)")
 
         local temp_mode
         if [[ $has_tvs -eq 1 ]]; then
@@ -388,6 +401,10 @@ function main_menu() {
                 break
                 ;;
             X)
+                return 0
+                ;;
+            L)
+                command+=" --verbose"
                 return 0
                 ;;
             Q)
@@ -594,10 +611,10 @@ function retroarch_append_config() {
     # make sure tmp folder exists for unpacking archives
     mkdir -p "/tmp/retroarch"
 
-    local conf="/tmp/retroarch.cfg"
+    local conf="/dev/shm/retroarch.cfg"
     rm -f "$conf"
     touch "$conf"
-    if [[ "$has_tvs" -eq 1 ]]; then
+    if [[ "$has_tvs" -eq 1 && "${mode_new[5]}" -gt 0 ]]; then
         # set video_refresh_rate in our config to the same as the screen refresh
         [[ -n "${mode_new[5]}" ]] && echo "video_refresh_rate = ${mode_new[5]}" >>"$conf"
     fi
@@ -660,6 +677,7 @@ function get_sys_command() {
 
     rom_bn="${rom##*/}"
     rom_bn="${rom_bn%.*}"
+
     appsave=a$(echo "$system$rom" | md5sum | cut -d" " -f1)
 
     if [[ ! -f "$emu_conf" ]]; then
@@ -698,52 +716,66 @@ function get_sys_command() {
     command="${command/\%ROM\%/\"$rom\"}"
     command="${command/\%BASENAME\%/\"$rom_bn\"}"
 
+    # special case to get the last 2 folders for quake games for the -game parameter
+    # remove everything up to /quake/
+    local quake_dir="${rom##*/quake/}"
+    # remove filename
+    local quake_dir="${quake_dir%/*}"
+    command="${command/\%QUAKEDIR\%/\"$quake_dir\"}"
+
     # if it starts with CON: it is a console application (so we don't redirect stdout later)
     if [[ "$command" == CON:* ]]; then
         # remove CON:
         command="${command:4}"
-        is_console=1
-    else
-        is_console=0
+        console_out=1
     fi
 }
 
 function show_launch() {
-    local image=""
-    if [[ "$use_art" -eq 1 ]]; then
-        local image_paths=(
-            "$HOME/RetroPie/roms/$system/images"
-            "$HOME/.emulationstation/downloaded_images/$system"
-        )
+    local images=()
 
-        local path
-        for path in "${image_paths[@]}"; do
-            if [[ -f "$path/${rom_bn}-image.jpg" ]]; then
-                image="$path/${rom_bn}-image.jpg"
-                break
-            elif [[ -f "$path/${rom_bn}-image.png" ]]; then
-                image="$path/${rom_bn}-image.png"
-                break
-            fi
-        done
+    if [[ "$use_art" -eq 1 ]]; then
+        # if using art look for images in paths for es art.
+        images+=(
+            "$HOME/RetroPie/roms/$system/images/${rom_bn}-image"
+            "$HOME/.emulationstation/downloaded_images/$system/${rom_bn}-image"
+        )
     fi
 
-    # check for x/m key pressed to choose a screenmode (x included as it is useful on the picade)
-    if [[ -n "$image" ]]; then
+    # look for custom launching images
+    images+=(
+        "$configdir/$system/launching"
+        "$configdir/all/launching"
+    )
+
+    local image
+    local path
+    local ext
+    for path in "${images[@]}"; do
+        for ext in jpg png; do
+            if [[ -f "$path.$ext" ]]; then
+                image="$path.$ext"
+                break 2
+            fi
+        done
+    done
+
+    if [[ -z "$DISPLAY" && -n "$image" ]]; then
         fbi -1 -t 2 -noverbose -a "$image" </dev/tty &>/dev/null
-    elif [[ "$disable_menu" -ne 1 ]]; then
+    elif [[ "$disable_menu" -ne 1 && "$use_art" -ne 1 ]]; then
         local launch_name
         if [[ -n "$rom_bn" ]]; then
             launch_name="$rom_bn ($emulator)"
         else
             launch_name="$emulator"
         fi
-        DIALOGRC="$configdir/all/runcommand-launch-dialog.cfg" dialog --infobox "\nLaunching $launch_name ...\n\nPress a button to configure\n\nErrors are logged to /tmp/runcommand.log" 9 60
+        DIALOGRC="$configdir/all/runcommand-launch-dialog.cfg" dialog --infobox "\nLaunching $launch_name ...\n\nPress a button to configure\n\nErrors are logged to $log" 9 60
     fi
 }
 
 function check_menu() {
     start_joy2key
+    # check for key pressed to enter configuration
     IFS= read -s -t 2 -N 1 key </dev/tty
     if [[ -n "$key" ]]; then
         if [[ $has_tvs -eq 1 ]]; then
@@ -759,13 +791,25 @@ function check_menu() {
     return $dont_launch
 }
 
-# turn off cursor and clear screen
-tput civis
-clear
+# calls script with parameters system, emulator, rom, and commandline
+function user_script() {
+    local script="$configdir/all/$1"
+    if [[ -f "$script" ]]; then
+        bash "$script" "$system" "$emulator" "$rom" "$command" </dev/tty 2>>"$log"
+    fi
+}
 
 get_config
 
 get_params "$@"
+
+# turn off cursor and clear screen
+tput civis
+clear
+
+rm -f "$log"
+echo -e "$system\n$emulator\n$rom\n$command" >/dev/shm/runcommand.info
+user_script "runcommand-onstart.sh"
 
 get_save_vars
 
@@ -796,14 +840,15 @@ config_dispmanx "$save_emu"
 
 retroarch_append_config
 
-# launch the command - don't redirect stdout for frotz,  when using console output or when not using _SYS_
-# frotz is included in case its emulators.cfg is out of date and missing CON: - can be removed in the future
-if [[ "$emulator" == frotz || "$is_console" -eq 1 || "$is_sys" -eq 0 ]]; then
+# launch the command
+echo -e "Parameters: $@\nExecuting: $command" >>"$log"
+if [[ "$console_out" -eq 1 ]]; then
     # turn cursor on
     tput cnorm
-    eval $command </dev/tty 2>/tmp/runcommand.log
+    eval $command </dev/tty 2>>"$log"
+    tput civis
 else
-    eval $command </dev/tty &>/tmp/runcommand.log
+    eval $command </dev/tty &>>"$log"
 fi
 
 clear
@@ -822,6 +867,8 @@ fi
 # reset/restore framebuffer res (if it was changed)
 [[ -n "$fb_new" ]] && restore_fb
 
-tput cnorm
+[[ "$command" =~ retroarch ]] && retroarchIncludeToEnd "$conf_root/retroarch.cfg"
+
+user_script "runcommand-onend.sh"
 
 exit 0

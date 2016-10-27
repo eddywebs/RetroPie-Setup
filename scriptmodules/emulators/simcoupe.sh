@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -45,5 +45,5 @@ function configure_simcoupe() {
     mkRomDir "samcoupe"
     moveConfigDir "$home/.simcoupe" "$md_conf_root/$md_id"
 
-    addSystem 1 "$md_id" "samcoupe" "pushd $md_inst; $md_inst/simcoupe autoboot -disk1 %ROM% -fullscreen; popd" "SAM Coupe" ".dsk .mgt .sbt .sad"
+    addSystem 1 "$md_id" "samcoupe" "pushd $md_inst; $md_inst/simcoupe autoboot -disk1 %ROM% -fullscreen; popd"
 }

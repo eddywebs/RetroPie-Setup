@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -17,7 +17,7 @@ rp_module_flags="dispmanx !mali"
 
 function depends_residualvm() {
     getDepends libsdl1.2-dev libmpeg2-4-dev libogg-dev libvorbis-dev libflac-dev libmad0-dev libpng12-dev libtheora-dev libfaad-dev libfluidsynth-dev libfreetype6-dev zlib1g-dev
-    if [[ "$__raspbian_ver" -lt "8" ]]; then
+    if compareVersions "$__os_release" lt 8; then
         getDepends libjpeg8-dev
     else
         getDepends libjpeg-dev
@@ -65,5 +65,5 @@ _EOF_
     chown $user:$user "$romdir/residualvm/+Start ResidualVM.sh"
     chmod u+x "$romdir/residualvm/+Start ResidualVM.sh"
 
-    addSystem 1 "$md_id" "residualvm" "$romdir/residualvm/+Start\ ResidualVM.sh %BASENAME%" "ResidualVM" ".sh .svm"
+    addSystem 1 "$md_id" "residualvm" "bash $romdir/residualvm/+Start\ ResidualVM.sh %BASENAME%" "ResidualVM" ".sh .svm"
 }

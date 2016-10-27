@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -19,9 +19,9 @@ function sources_lr-gambatte() {
 }
 
 function build_lr-gambatte() {
-    make -C libgambatte -f Makefile.libretro clean
-    make -C libgambatte -f Makefile.libretro
-    md_ret_require="$md_build/libgambatte/gambatte_libretro.so"
+    make -f Makefile.libretro clean
+    make -f Makefile.libretro
+    md_ret_require="$md_build/gambatte_libretro.so"
 }
 
 function install_lr-gambatte() {
@@ -29,14 +29,14 @@ function install_lr-gambatte() {
         'COPYING'
         'changelog'
         'README'
-        'libgambatte/gambatte_libretro.so'
+        'gambatte_libretro.so'
     )
 }
 
 function configure_lr-gambatte() {
     # add default green yellow palette for gameboy classic
     mkUserDir "$biosdir/palettes"
-    cp "$scriptdir/scriptmodules/$md_type/$md_id/default.pal" "$biosdir/palettes/"
+    cp "$md_data/default.pal" "$biosdir/palettes/"
     chown $user:$user "$biosdir/palettes/default.pal"
     setRetroArchCoreOption "gambatte_gb_colorization" "custom"
 

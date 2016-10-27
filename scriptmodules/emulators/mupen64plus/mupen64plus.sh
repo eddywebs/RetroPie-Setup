@@ -1,7 +1,21 @@
 #!/usr/bin/env bash
+
+# This file is part of The RetroPie Project
+#
+# The RetroPie Project is the legal property of its developers, whose names are
+# too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
+# at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
+#
+
 AUDIO_PLUGIN="mupen64plus-audio-sdl"
 VIDEO_PLUGIN="$1"
 ROM="$2"
+RES="$3"
+RSP_PLUGIN="$4"
+[[ -n "$RES" ]] && RES="--resolution $RES"
+[[ -z "$RSP_PLUGIN" ]] && RSP_PLUGIN="mupen64plus-rsp-hle"
 rootdir="/opt/retropie"
 configdir="$rootdir/configs"
 config="$configdir/n64/mupen64plus.cfg"
@@ -19,114 +33,70 @@ function getBind() {
     local key="$1"
     local m64p_hotkey="J$2"
     local file="$3"
-    local input_type
-    
+
     iniConfig " = " "" "$file"
 
     # search hotkey enable button
-    for input_type in "_btn" "_axis"; do 
-        iniGet "input_enable_hotkey${input_type}"
-        ini_value="${ini_value// /}"
-        if [[ -n "$ini_value" ]]; then
-            case "$input_type" in
-                _axis)
-                    ini_value="${ini_value//\"/}"
-                    m64p_hotkey+="A${ini_value:1}${ini_value:0:1}/"
-                    break
-                ;;
-                _btn)
-                    # if ini_value contains "h" it should be a hat device
-                    if [[ "$ini_value" == *h* ]]; then
-                        ini_value="${ini_value//\"/}"
-                        local dir="${ini_value:2}"
-                        ini_value="${ini_value:1}"
-                        case $dir in
-                            up)
-                                dir="1"
-                                ;;
-                            right)
-                                dir="2"
-                                ;;
-                            down)
-                                dir="4"
-                                ;;
-                            left)
-                                dir="8"
-                                ;;
-                        esac
-                        m64p_hotkey+="H${ini_value:0:1}V${dir}/"
-                        break
-                    else
-                        m64p_hotkey+="B${ini_value//\"/}/"
-                        break
-                    fi
-                ;;
-            esac
-        fi
-    done
-
-    # search hotkey
-    for input_type in "_btn" "_axis"; do 
-        # add hotkey and append enable hotkey button
-        # return if hotkey exists
-        iniGet "${key}${input_type}"
-        ini_value="${ini_value// /}"
-        if [[ -n "$ini_value" ]]; then
-            case "$input_type" in
-                _axis)
-                    ini_value="${ini_value//\"/}"
-                    m64p_hotkey+="A${ini_value:1}${ini_value:0:1}"
-                    echo "$m64p_hotkey"
-                    return
+    local hotkey
+    local input_type
+    local i=0
+    for hotkey in input_enable_hotkey "$key"; do
+        for input_type in "_btn" "_axis"; do
+            iniGet "${hotkey}${input_type}"
+            ini_value="${ini_value// /}"
+            if [[ -n "$ini_value" ]]; then
+                ini_value="${ini_value//\"/}"
+                case "$input_type" in
+                    _axis)
+                        m64p_hotkey+="A${ini_value:1}${ini_value:0:1}"
                     ;;
-                _btn)
-                    # if ini_value contains "h" it should be a hat device
-                    if [[ "$ini_value" == *h* ]]; then
-                        ini_value="${ini_value//\"/}"
-                        local dir="${ini_value:2}"
-                        ini_value="${ini_value:1}"
-                        case $dir in
-                            up)
-                                dir="1"
-                                ;;
-                            right)
-                                dir="2"
-                                ;;
-                            down)
-                                dir="4"
-                                ;;
-                            left)
-                                dir="8"
-                                ;;
-                        esac
-                        m64p_hotkey+="H${ini_value:0:1}V${dir}"
-                        echo "$m64p_hotkey"
-                        return
-                    else
-                        m64p_hotkey+="B${ini_value//\"/}"
-                        echo "$m64p_hotkey"
-                        return
-                    fi 
+                    _btn)
+                        # if ini_value contains "h" it should be a hat device
+                        if [[ "$ini_value" == *h* ]]; then
+                            local dir="${ini_value:2}"
+                            ini_value="${ini_value:1}"
+                            case $dir in
+                                up)
+                                    dir="1"
+                                    ;;
+                                right)
+                                    dir="2"
+                                    ;;
+                                down)
+                                    dir="4"
+                                    ;;
+                                left)
+                                    dir="8"
+                                    ;;
+                            esac
+                            m64p_hotkey+="H${ini_value}V${dir}"
+                        else
+                            [[ "$atebitdo_hack" -eq 1 && "$ini_value" -ge 11 ]] && ((ini_value-=11))
+                            m64p_hotkey+="B${ini_value}"
+                        fi
                     ;;
-            esac
-        fi
+                esac
+            fi
+        done
+        [[ "$i" -eq 0 ]] && m64p_hotkey+="/"
+        ((i++))
     done
-    return
+    echo "$m64p_hotkey"
 }
 
 function remap() {
     local device
     local devices
     local device_num
-    
+
     # get lists of all present js device numbers and device names
     # get device count
-    for device in /dev/input/js*; do
-        device_num=${device/\/dev\/input\/js/}
+    while read -r device; do
+        device_num="${device##*/js}"
         devices[$device_num]=$(</sys/class/input/js${device_num}/device/name)
-    done
+    done < <(find /dev/input -name "js*")
 
-    # read retroarch auto config file and use config 
+    # read retroarch auto config file and use config
     # for mupen64plus.cfg
     local file
     local bind
@@ -141,11 +111,14 @@ function remap() {
         echo "Version = 1" >> "$config"
     fi
 
+    local atebitdo_hack
     for i in {0..2}; do
         bind=""
         for device_num in "${!devices[@]}"; do
             # get name of retroarch auto config file
             file=$(grep --exclude=*.bak -rl "$configdir/all/retroarch-joypads/" -e "\"${devices[$device_num]}\"")
+            atebitdo_hack=0
+            [[ "$file" == *8Bitdo* ]] && getAutoConf "8bitdo_hack" && atebitdo_hack=1
             if [[ -f "$file" ]]; then
                 if [[ -n "$bind" && "$bind" != *, ]]; then
                     bind+=","
@@ -199,12 +172,20 @@ function testCompatibility() {
     # fallback for glesn64 and rice plugin
     # some roms lead to a black screen of death
     local game
+    local blacklist=(
+        resident
+        gauntlet
+        rogue
+        squadron
+    )
+
     local glesn64_blacklist=(
         zelda
         paper
         kazooie
         tooie
         instinct
+        beetle
     )
 
     local glesn64rice_blacklist=(
@@ -225,55 +206,72 @@ function testCompatibility() {
         gemini
         majora
         1080
+        quake
+        ridge
     )
 
     local GLideN64LegacyBlending_blacklist=(
         empire
         beetle
+        donkey
     )
 
-    if [[ "$VIDEO_PLUGIN" == "mupen64plus-video-n64" ]];then
-        for game in "${glesn64_blacklist[@]}"; do
-            if [[ "${ROM,,}" == *"$game"* ]]; then
-                VIDEO_PLUGIN="mupen64plus-video-rice"
-            fi
-        done
-    fi
+    local GLideN64NativeResolution_blacklist=(
+        majora
+    )
 
-    if [[ "$VIDEO_PLUGIN" != "mupen64plus-video-GLideN64" ]];then
-        for game in "${glesn64rice_blacklist[@]}"; do
-            if [[ "${ROM,,}" == *"$game"* ]]; then
-                VIDEO_PLUGIN="mupen64plus-video-GLideN64"
-            fi
-        done
-    fi
-
-    if [[ "$VIDEO_PLUGIN" == "mupen64plus-video-GLideN64" ]];then
-        if ! grep -q "\[Video-GLideN64\]" "$config"; then
-            echo "[Video-GLideN64]" >> "$config"
+    for game in "${blacklist[@]}"; do
+        if [[ "${ROM,,}" == *"$game"* ]]; then
+            exit
         fi
-        iniConfig " = " "" "$config"
-        # Settings version. Don't touch it.
-        iniSet "configVersion" "12"
-        # Enable FBEmulation if necessary
-        iniSet "EnableFBEmulation" "False"
-        # Set native resolution factor of 1
-        iniSet "nativeResFactor" "1"
-        for game in "${GLideN64FBEMU_whitelist[@]}"; do
-            if [[ "${ROM,,}" == *"$game"* ]]; then
-                iniSet "EnableFBEmulation" "True"
-                break
+    done
+
+    case "$VIDEO_PLUGIN" in
+        "mupen64plus-video-GLideN64")
+            if ! grep -q "\[Video-GLideN64\]" "$config"; then
+                echo "[Video-GLideN64]" >> "$config"
             fi
-        done
-        # Disable LegacyBlending if necessary
-        iniSet "enableLegacyBlending" "True"
-        for game in "${GLideN64LegacyBlending_blacklist[@]}"; do
-            if [[ "${ROM,,}" == *"$game"* ]]; then
-                iniSet "enableLegacyBlending" "False"
-                break
-            fi
-        done
-    fi
+            iniConfig " = " "" "$config"
+            # Settings version. Don't touch it.
+            iniSet "configVersion" "14"
+            # Enable FBEmulation if necessary
+            iniSet "EnableFBEmulation" "False"
+            for game in "${GLideN64FBEMU_whitelist[@]}"; do
+                if [[ "${ROM,,}" == *"$game"* ]]; then
+                    iniSet "EnableFBEmulation" "True"
+                    break
+                fi
+            done
+            # Set native resolution factor of 1
+            iniSet "UseNativeResolutionFactor" "1"
+            for game in "${GLideN64NativeResolution_blacklist[@]}"; do
+                if [[ "${ROM,,}" == *"$game"* ]]; then
+                    iniSet "UseNativeResolutionFactor" "0"
+                    break
+                fi
+            done
+            # Disable LegacyBlending if necessary
+            iniSet "EnableLegacyBlending" "True"
+            for game in "${GLideN64LegacyBlending_blacklist[@]}"; do
+                if [[ "${ROM,,}" == *"$game"* ]]; then
+                    iniSet "EnableLegacyBlending" "False"
+                    break
+                fi
+            done
+            ;;
+        "mupen64plus-video-n64"|"mupen64plus-video-rice")
+            for game in "${glesn64_blacklist[@]}"; do
+                if [[ "${ROM,,}" == *"$game"* ]]; then
+                    VIDEO_PLUGIN="mupen64plus-video-rice"
+                fi
+            done
+            for game in "${glesn64rice_blacklist[@]}"; do
+                if [[ "${ROM,,}" == *"$game"* ]]; then
+                    VIDEO_PLUGIN="mupen64plus-video-GLideN64"
+                fi
+            done
+            ;;
+    esac
 }
 
 if ! grep -q "\[Core\]" "$config"; then
@@ -291,7 +289,7 @@ getAutoConf mupen64plus_audio && setAudio
 
 if [[ "$(sed -n '/^Hardware/s/^.*: \(.*\)/\1/p' < /proc/cpuinfo)" == *BCM27* ]]; then
     # If a raspberry pi is used lower resolution to 320x240 and enable SDL dispmanx scaling mode 1
-    SDL_VIDEO_RPI_SCALE_MODE=1 "$rootdir/emulators/mupen64plus/bin/mupen64plus" --noosd --windowed --resolution 320x240 --gfx ${VIDEO_PLUGIN}.so --audio ${AUDIO_PLUGIN}.so --configdir "$configdir/n64" --datadir "$configdir/n64" "$ROM"
+    SDL_VIDEO_RPI_SCALE_MODE=1 "$rootdir/emulators/mupen64plus/bin/mupen64plus" --noosd --windowed $RES --rsp ${RSP_PLUGIN}.so --gfx ${VIDEO_PLUGIN}.so --audio ${AUDIO_PLUGIN}.so --configdir "$configdir/n64" --datadir "$configdir/n64" "$ROM"
 else
-    "$rootdir/emulators/mupen64plus/bin/mupen64plus" --noosd --fullscreen --gfx ${VIDEO_PLUGIN}.so --audio mupen64plus-audio-sdl.so --configdir "$configdir/n64" --datadir "$configdir/n64" "$ROM"
+    "$rootdir/emulators/mupen64plus/bin/mupen64plus" --noosd --fullscreen --rsp ${RSP_PLUGIN}.so --gfx ${VIDEO_PLUGIN}.so --audio mupen64plus-audio-sdl.so --configdir "$configdir/n64" --datadir "$configdir/n64" "$ROM"
 fi

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -19,8 +19,10 @@ function sources_lr-mame() {
 }
 
 function build_lr-mame() {
+    rpSwap on 750
     make -f Makefile.libretro clean
     make -f Makefile.libretro SUBTARGET=arcade
+    rpSwap off
     md_ret_require="$md_build/mamearcade_libretro.so"
 }
 

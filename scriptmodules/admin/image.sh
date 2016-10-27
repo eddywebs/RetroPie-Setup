@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -24,7 +24,7 @@ function chroot_image() {
     mkdir -p mnt/boot chroot
     local image=$(ls -1 *-raspbian-jessie-lite.img 2>/dev/null)
     if [[ ! -f "$image" ]]; then
-        wget -c -O "raspbian_lite.zip" https://downloads.raspberrypi.org/raspbian_lite_latest 
+        wget -c -O "raspbian_lite.zip" https://downloads.raspberrypi.org/raspbian_lite_latest
         unzip "raspbian_lite.zip"
         image=$(unzip -Z -1 "raspbian_lite.zip")
         rm "raspbian_lite.zip"
@@ -37,7 +37,7 @@ function chroot_image() {
     mount /dev/mapper/loop0p1 mnt/boot
 
     printMsgs "console" "Creating chroot"
-    rsync -a --numeric-ids --delete mnt/ chroot/
+    rsync -aAHX --numeric-ids --delete mnt/ chroot/
 
     umount mnt/boot mnt
     rm -rf mnt
@@ -55,7 +55,7 @@ function install_rp_image() {
 
     # unmount on ctrl+c
     trap _umount_chroot INT
-    
+
     # mount special filesytems to chroot
     mkdir -p chroot/dev/pts
     mount none -t devpts chroot/dev/pts
@@ -66,17 +66,19 @@ function install_rp_image() {
 
     # so we can resolve inside the chroot
     echo "nameserver 192.168.1.1" >chroot/etc/resolv.conf
-    
+
     # hostname to retropie
     echo "retropie" >chroot/etc/hostname
     sed -i "s/raspberrypi/retropie/" chroot/etc/hosts
 
-    # quieter boot
+    # quieter boot / disable plymouth (as without the splash parameter it
+    # causes all boot messages to be displayed and interferes with people
+    # using tty3 to make the boot even quieter)
     if ! grep -q consoleblank chroot/boot/cmdline.txt; then
         # extra quiet as the raspbian usr/lib/raspi-config/init_resize.sh does
         # sed -i 's/ quiet init=.*$//' /boot/cmdline.txt so this will remove the last quiet
         # and the init line but leave ours intact
-        sed -i "s/quiet/quiet loglevel=3 consoleblank=0 quiet/" chroot/boot/cmdline.txt
+        sed -i "s/quiet/quiet loglevel=3 consoleblank=0 plymouth.enable=0 quiet/" chroot/boot/cmdline.txt
     fi
 
     cat > chroot/home/pi/install.sh <<_EOF_
@@ -88,7 +90,7 @@ git clone https://github.com/RetroPie/RetroPie-Setup.git
 cd RetroPie-Setup
 modules=(
     'raspbiantools apt_upgrade'
-    'setup quick_install'
+    'setup basic_install'
     'bluetooth depends'
     'raspbiantools enable_modules'
     'autostart enable'
@@ -99,6 +101,7 @@ modules=(
     'splashscreen default'
     'splashscreen enable'
     'bashwelcometweak'
+    'xpad'
 )
 for module in "\${modules[@]}"; do
     # rpi1 platform would use QEMU_CPU set to arm1176, but it seems buggy currently (lots of segfaults)
@@ -111,8 +114,12 @@ _EOF_
     HOME="/home/pi" chroot --userspec 1000:1000 chroot bash /home/pi/install.sh
 
     _umount_chroot
+
     >chroot/etc/resolv.conf
     rm chroot/home/pi/install.sh
+
+    # remove any ssh host keys that may have been generated during any ssh package upgrades
+    rm -f chroot/etc/ssh/ssh_host*
 
     popd
 }
@@ -169,8 +176,8 @@ function create_image() {
 
     # copy files
     printMsgs "console" "Rsyncing chroot to $image ..."
-    rsync --numeric-ids -a chroot/ mnt/
-    
+    rsync -aAHX --numeric-ids  chroot/ mnt/
+
     # unmount
     umount mnt/boot mnt
     rm -rf mnt
@@ -180,7 +187,7 @@ function create_image() {
 
     printMsgs "console" "Compressing $image ..."
     gzip -f "$image"
-    
+
     popd
 }
 

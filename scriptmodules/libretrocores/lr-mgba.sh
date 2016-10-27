@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -13,7 +13,7 @@ rp_module_id="lr-mgba"
 rp_module_desc="GBA emulator - MGBA (optimised) port for libretro"
 rp_module_help="ROM Extensions: .gba .zip\n\nCopy your Game Boy Advance roms to $romdir/gba\n\nCopy the required BIOS file gba_bios.bin to $biosdir"
 rp_module_section="main"
-rp_module_flags="!armv6"
+rp_module_flags=""
 
 function sources_lr-mgba() {
     gitPullOrClone "$md_build" https://github.com/libretro/mgba.git

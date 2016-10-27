@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -17,7 +17,7 @@ rp_module_flags="!mali"
 
 function depends_scummvm() {
     getDepends libsdl2-dev libmpeg2-4-dev libogg-dev libvorbis-dev libflac-dev libmad0-dev libpng12-dev libtheora-dev libfaad-dev libfluidsynth-dev libfreetype6-dev zlib1g-dev
-    if [[ "$__raspbian_ver" -lt "8" ]]; then
+    if compareVersions "$__os_release" lt 8; then
         getDepends libjpeg8-dev
     else
         getDepends libjpeg-dev
@@ -25,8 +25,9 @@ function depends_scummvm() {
 }
 
 function sources_scummvm() {
-    gitPullOrClone "$md_build" https://github.com/scummvm/scummvm.git "branch-1-8"
-    patch -p1 <<\_EOF_
+    gitPullOrClone "$md_build" https://github.com/scummvm/scummvm.git "branch-1-9"
+    if isPlatform "rpi"; then
+        applyPatch rpi_enable_scalers.diff <<\_EOF_
 diff --git a/configure b/configure
 index 31dbf5a..58e9563 100755
 --- a/configure
@@ -43,6 +44,7 @@ index 31dbf5a..58e9563 100755
  			# since SDL2 manages dispmanx/GLES2 very well internally.
  			# SDL1 is bit-rotten on this platform.
 _EOF_
+    fi
 }
 
 function build_scummvm() {
@@ -92,5 +94,5 @@ _EOF_
     chown $user:$user "$romdir/scummvm/+Start ScummVM.sh"
     chmod u+x "$romdir/scummvm/+Start ScummVM.sh"
 
-    addSystem 1 "$md_id" "scummvm" "$romdir/scummvm/+Start\ ScummVM.sh %BASENAME%" "ScummVM" ".sh .svm"
+    addSystem 1 "$md_id" "scummvm" "bash $romdir/scummvm/+Start\ ScummVM.sh %BASENAME%" "ScummVM" ".sh .svm"
 }

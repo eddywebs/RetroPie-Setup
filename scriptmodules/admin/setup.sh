@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -55,21 +55,26 @@ function rps_printInfo() {
 }
 
 function depends_setup() {
-    if [[ "$__raspbian_ver" -eq 7 ]]; then
-        printMsgs "dialog" "Raspbian Wheezy is no longer supported. Binaries are no longer updated and new emulators may fail to build, install or run.\n\nPlease backup your system and start from the latest image."
+    if compareVersions "$__os_release" lt 8; then
+        printMsgs "dialog" "Raspbian versions older than 8.0 are no longer supported. Binaries are no longer updated and new emulators may fail to build, install or run.\n\nPlease backup your system and start from the latest image."
     fi
     # check for VERSION file - if it doesn't exist we will run the post_update script as it won't be triggered
     # on first upgrade to 4.x
     if [[ ! -f "$rootdir/VERSION" ]]; then
+        joy2keyStop
         exec "$scriptdir/retropie_packages.sh" setup post_update gui_setup
     fi
     if isPlatform "rpi" && [[ -f /boot/config.txt ]] && grep -q "^dtoverlay=vc4-kms-v3d" /boot/config.txt; then
         printMsgs "dialog" "You have the experimental desktop GL driver enabled. This is NOT compatible with RetroPie, and Emulation Station as well as emulators will fail to launch. Please disable the experimental desktop GL driver from the raspi-config 'Advanced Options' menu."
     fi
+
+    # remove all but the last 20 logs
+    find "$__logdir" -type f | sort | head -n -20 | xargs -d '\n' --no-run-if-empty rm
 }
 
 function updatescript_setup()
 {
+    clear
     chown -R $user:$user "$scriptdir"
     printHeading "Fetching latest version of the RetroPie Setup Script."
     pushd "$scriptdir" >/dev/null
@@ -95,8 +100,19 @@ function post_update_setup() {
 
     echo "$__version" >"$rootdir/VERSION"
 
-    # run _update_hook_id functions - eg to fix up modules for retropie-setup 4.x install detection
-    rp_updateHooks
+    clear
+    local logfilename
+    __ERRMSGS=()
+    __INFMSGS=()
+    rps_logInit
+    {
+        rps_logStart
+        # run _update_hook_id functions - eg to fix up modules for retropie-setup 4.x install detection
+        printHeading "Running post update hooks"
+        rp_updateHooks
+        rps_logEnd
+    } &> >(tee >(gzip --stdout >"$logfilename"))
+    rps_printInfo "$logfilename"
 
     printMsgs "dialog" "NOTICE: Retropie is an open source software licensed under GPL, the source code for with redistribution is available at: https://github.com/eddywebs/RetroPie-Setup"
 
@@ -150,6 +166,7 @@ function package_setup() {
 
         case "$choice" in
             B|I)
+                clear
                 rps_logInit
                 {
                     rps_logStart
@@ -159,9 +176,11 @@ function package_setup() {
                 rps_printInfo "$logfilename"
                 ;;
             S)
+                clear
                 rps_logInit
                 {
                     rps_logStart
+                    rp_callModule "$idx" clean
                     rp_callModule "$idx"
                     rps_logEnd
                 } &> >(tee >(gzip --stdout >"$logfilename"))
@@ -265,6 +284,7 @@ function section_gui_setup() {
                 {
                     rps_logStart
                     for idx in $(rp_getSectionIds $section); do
+                        rp_callModule "$idx" clean
                         rp_callModule "$idx"
                     done
                     rps_logEnd
@@ -294,7 +314,7 @@ function section_gui_setup() {
     done
 }
 
-function settings_gui_setup() {
+function config_gui_setup() {
     local default
     while true; do
         local options=()
@@ -332,6 +352,7 @@ function settings_gui_setup() {
                 rp_callModule "$choice" depends
                 rp_callModule "$choice" gui
             else
+                rp_callModule "$idx" clean
                 rp_callModule "$choice"
             fi
             rps_logEnd
@@ -341,6 +362,7 @@ function settings_gui_setup() {
 }
 
 function update_packages_setup() {
+    clear
     local idx
     for idx in ${__mod_idx[@]}; do
         if rp_isInstalled "$idx" && [[ -n "${__mod_section[$idx]}" ]]; then
@@ -355,8 +377,14 @@ function update_packages_gui_setup() {
         dialog --defaultno --yesno "Are you sure you want to update installed packages?" 22 76 2>&1 >/dev/tty || return 1
         updatescript_setup
         # restart at post_update and then call "update_packages_gui_setup update" afterwards
+        joy2keyStop
         exec "$scriptdir/retropie_packages.sh" setup post_update update_packages_gui_setup update
     fi
+
+    local update_os=0
+    dialog --yesno "Would you like to update the underlying OS packages (eg kernel etc) ?" 22 76 2>&1 >/dev/tty && update_os=1
+
+    clear
 
     local logfilename
     __ERRMSGS=()
@@ -364,7 +392,7 @@ function update_packages_gui_setup() {
     rps_logInit
     {
         rps_logStart
-        dialog --yesno "Would you like to update the underlying OS packages (eg kernel etc) ?" 22 76 2>&1 >/dev/tty && apt_upgrade_raspbiantools
+        [[ "$update_os" -eq 1 ]] && apt_upgrade_raspbiantools
         update_packages_setup
         rps_logEnd
     } &> >(tee >(gzip --stdout >"$logfilename"))
@@ -374,13 +402,10 @@ function update_packages_gui_setup() {
     gui_setup
 }
 
-function quick_install_setup() {
+function basic_install_setup() {
+    local idx
     for idx in $(rp_getSectionIds core) $(rp_getSectionIds main); do
-        if rp_hasBinaries; then
-            rp_installModule "$idx"
-        else
-            rp_callModule "$idx"
-        fi
+        rp_installModule "$idx"
     done
 }
 
@@ -388,11 +413,6 @@ function packages_gui_setup() {
     local section
     local default
     local options=()
-
-    options+=(
-        I "Quick install" "I This will install all packages from Core and Main which gives a basic RetroPie install. Further packages can then be installed later from the Optional and Experimental sections. If binaries are available they will be used, alternatively packages will be built from source - which will take longer."
-        U "Update all installed packages" "U Update all currently installed packages. If binaries are available they will be used, alternatively packages will be built from source - which will take longer."
-    )
 
     for section in core main opt driver exp; do
         options+=($section "Manage ${__sections[$section]} packages" "$section Choose top install/update/configure packages from the ${__sections[$section]}")
@@ -412,20 +432,8 @@ function packages_gui_setup() {
             printMsgs "dialog" "$choice"
             continue
         fi
+        section_gui_setup "$choice"
         default="$choice"
-        case "$choice" in
-            I)
-                dialog --defaultno --yesno "Are you sure you want to do a quick install?" 22 76 2>&1 >/dev/tty || continue
-                quick_install_setup
-                ;;
-            U)
-                update_packages_gui_setup
-                ;;
-            *)
-                section_gui_setup "$choice"
-                ;;
-        esac
-
     done
 }
 
@@ -466,19 +474,23 @@ function gui_setup() {
 
         cmd=(dialog --backtitle "$__backtitle" --title "RetroPie-Setup Script" --cancel-label "Exit" --item-help --help-button --default-item "$default" --menu "Version: $__version\nLast Commit: $commit" 22 76 16)
         options=(
-            P "Manage Packages"
+            I "Basic install" "I This will install all packages from Core and Main which gives a basic RetroPie install. Further packages can then be installed later from the Optional and Experimental sections. If binaries are available they will be used, alternatively packages will be built from source - which will take longer."
+
+            U "Update all installed packages" "U Update all currently installed packages. If binaries are available they will be used, alternatively packages will be built from source - which will take longer."
+
+            P "Manage packages"
             "P Install/Remove and Configure the various components of RetroPie, including emulators, ports, and controller drivers."
 
-            S "Setup / Tools"
-            "S Configuration Tools and additional setup. Any components of RetroPie that have configuration will also appear here after install."
+            C "Configuration / tools"
+            "C Configuration and Tools. Any packages you have installed that have additional configuration options will also appear here."
+
+            S "Update RetroPie-Setup script"
+            "S Update this RetroPie-Setup script. This will update this main management script only, but will not update any software packages. To update packages use the 'Update' option from the main menu, which will also update the RetroPie-Setup script."
 
             X "Uninstall RetroPie"
             "X Uninstall RetroPie completely."
 
-            U "Update RetroPie-Setup script"
-            "U Update this RetroPie-Setup script. Note that RetroPie-Setup is constantly updated - the version numbers were introduced primarily for the pre-made images we provided, but we now display a version in this menu as a guide. If you update the RetroPie-Setup script after downloading a pre-made image, you may get a higher version number or a -dev release. This does not mean the software is unstable, it just means we are working on changes for the next version, when we will create a new image."
-
-            R "Perform Reboot"
+            R "Perform reboot"
             "R Reboot your machine."
         )
 
@@ -492,19 +504,41 @@ function gui_setup() {
             printMsgs "dialog" "$choice"
             continue
         fi
-        clear
+        default="$choice"
+
         case "$choice" in
+            I)
+                dialog --defaultno --yesno "Are you sure you want to do a basic install?\n\nThis will install all packages from the 'Core' and 'Main' package sections." 22 76 2>&1 >/dev/tty || continue
+                clear
+                local logfilename
+                __ERRMSGS=()
+                __INFMSGS=()
+                rps_logInit
+                {
+                    rps_logStart
+                    basic_install_setup
+                    rps_logEnd
+                } &> >(tee >(gzip --stdout >"$logfilename"))
+                rps_printInfo "$logfilename"
+                ;;
+            U)
+                update_packages_gui_setup
+                ;;
             P)
                 packages_gui_setup
                 ;;
+            C)
+                config_gui_setup
+                ;;
             S)
-                settings_gui_setup
+                dialog --defaultno --yesno "Are you sure you want to update the RetroPie-Setup script ?" 22 76 2>&1 >/dev/tty || continue
+                if updatescript_setup; then
+                    joy2keyStop
+                    exec "$scriptdir/retropie_packages.sh" setup post_update gui_setup
+                fi
                 ;;
             X)
                 uninstall_setup
-                ;;
-            U)
-                updatescript_setup && exec "$scriptdir/retropie_packages.sh" setup post_update gui_setup
                 ;;
             R)
                 dialog --defaultno --yesno "Are you sure you want to reboot?" 22 76 2>&1 >/dev/tty || continue

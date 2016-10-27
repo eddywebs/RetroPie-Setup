@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -39,7 +39,7 @@ function game_data_quake3() {
     if [[ ! -f "$romdir/ports/quake3/pak0.pk3" ]]; then
         cd "$__tmpdir"
         wget -O Q3DemoPaks.zip "$__archive_url/Q3DemoPaks.zip"
-        unzip -o Q3DemoPaks.zip -d "$romdir/ports/quake3"
+        unzip -oj Q3DemoPaks.zip  -d "$romdir/ports/quake3"
         rm Q3DemoPaks.zip
     fi
     # always chown as moveConfigDir in the configure_ script would move the root owned demo files

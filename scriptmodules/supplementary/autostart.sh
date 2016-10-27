@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -20,7 +20,7 @@ function enable_autostart() {
         mkUserDir "$home/.config/autostart"
         ln -sf "/usr/local/share/applications/retropie.desktop" "$home/.config/autostart/"
     else
-        if [[ "$__raspbian_ver" -lt "8" ]]; then
+        if [[ "$__os_codename" == "wheezy" ]]; then
             sed -i "s|^1:2345:.*|1:2345:respawn:/bin/login -f $user tty1 </dev/tty1 >/dev/tty1 2>\&1|g" /etc/inittab
             update-rc.d lightdm disable 2 # taken from /usr/bin/raspi-config
             sed -i "/emulationstation/d" /etc/profile
@@ -69,7 +69,7 @@ function disable_autostart() {
     if isPlatform "x11"; then
         rm "$home/.config/autostart/retropie.desktop"
     else
-        if [[ "$__raspbian_ver" -lt "8" ]]; then
+        if [[ "$__os_codename" == "wheezy" ]]; then
             sed -i "s|^1:2345:.*|1:2345:respawn:/sbin/getty --noclear 38400 tty1|g" /etc/inittab
             sed -i "/emulationstation/d" /etc/profile
         else
@@ -103,10 +103,12 @@ function gui_autostart() {
                 1 "Start Emulation Station at boot"
                 2 "Start Kodi at boot (exit for Emulation Station)"
                 E "Manually edit $configdir/autostart.sh"
-                C "Boot to text console (auto login)"
+                CL "Boot to text console (require login)"
+                CA "Boot to text console (auto login as $user)"
             )
-            if [[ "$__raspbian_ver" -gt "7" ]]; then
-                options+=(D "Boot to desktop (auto login)")
+            if compareVersions "$__os_release" ge 8; then
+                options+=(DL "Boot to desktop (require login)")
+                options+=(DA "Boot to desktop (auto login as $user)")
             fi
         fi
         choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
@@ -134,13 +136,21 @@ function gui_autostart() {
                 E)
                     editFile "$configdir/all/autostart.sh"
                     ;;
-                C)
-                    disable_autostart
-                    printMsgs "dialog" "Booting to text console."
+                CL)
+                    disable_autostart B1
+                    printMsgs "dialog" "Booting to text console (require login)."
                     ;;
-                D)
+                CA)
+                    disable_autostart B2
+                    printMsgs "dialog" "Booting to text console (auto login as $user)."
+                    ;;
+                DL)
+                    disable_autostart B3
+                    printMsgs "dialog" "Booting to desktop (require login)."
+                    ;;
+                DA)
                     disable_autostart B4
-                    printMsgs "dialog" "Booting to desktop."
+                    printMsgs "dialog" "Booting to desktop (auto login as $user)."
                     ;;
             esac
         else

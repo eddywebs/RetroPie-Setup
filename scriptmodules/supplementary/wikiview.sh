@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -65,7 +65,7 @@ function gui_wikiview() {
                         file=$(choose_wikipage_wikiview "$wikidir" ".*.md" ".*_.*")
                         if [[ -n "$file" ]]; then
                             joy2keyStop
-                            joy2keyStart 00 00 1b5b327e 1b5b337e 20 71
+                            joy2keyStart 0x00 0x00 kich1 kdch1 0x20 0x71
                             pandoc "$wikidir/$file" | lynx -localhost -restrictions=all -stdin >/dev/tty
                             joy2keyStop
                             joy2keyStart

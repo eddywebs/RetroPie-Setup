@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -27,7 +27,7 @@ function sources_lr-ppsspp() {
     else
         gitPullOrClone "$md_build" https://github.com/libretro/libretro-ppsspp.git
     fi
-    git submodule update --init
+    runCmd git submodule update --init
     # remove the lines that trigger the ffmpeg build script functions - we will just use the variables from it
     sed -i "/^build_ARMv6$/,$ d" ffmpeg/linux_arm.sh
 }
@@ -37,7 +37,7 @@ function build_lr-ppsspp() {
     cd ffmpeg
     build_ffmpeg_ppsspp
     cd "$md_build"
-    
+
     make -C libretro clean
     local params=()
     isPlatform "rpi" && params+=("platform=rpi2")

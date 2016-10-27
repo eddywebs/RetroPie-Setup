@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -51,11 +51,8 @@ function configure_linapple() {
     # copy default config/disk if user doesn't have them installed
     local file
     for file in Master.dsk linapple.conf; do
-        if [[ ! -f "$md_conf_root/apple2/$file" ]]; then
-            cp -v "$file" "$md_conf_root/apple2/$file"
-            chown $user:$user "$md_conf_root/apple2/$file"
-        fi
+        copyDefaultConfig "$file" "$md_conf_root/apple2/$file"
     done
 
-    addSystem 1 "$md_id" "apple2" "$md_inst/linapple -1 %ROM%" "Apple II" ".po .dsk .nib"
+    addSystem 1 "$md_id" "apple2" "pushd $romdir/apple2; $md_inst/linapple -1 %ROM%; popd"
 }

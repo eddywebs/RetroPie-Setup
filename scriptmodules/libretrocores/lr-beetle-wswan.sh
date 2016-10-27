@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -16,10 +16,7 @@ rp_module_section="opt"
 
 function _update_hook_lr-beetle-wswan() {
     # move from old location and update emulators.cfg
-    if [[ -d "$rootdir/$md_type/lr-mednafen-wswan" ]]; then
-        mv "$rootdir/$md_type/lr-mednafen-wswan" "$md_inst"
-        sed -i "s/lr-mednafen-wswan/lr-beetle-wswan/g" "$configdir"/*/emulators.cfg
-    fi
+    renameModule "lr-mednafen-wswan" "lr-beetle-wswan"
 }
 
 function sources_lr-beetle-wswan() {

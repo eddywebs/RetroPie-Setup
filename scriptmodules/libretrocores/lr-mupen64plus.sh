@@ -1,31 +1,27 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
 rp_module_id="lr-mupen64plus"
 rp_module_desc="N64 emu - Mupen64 Plus port for libretro"
 rp_module_help="ROM Extensions: .z64 .n64 .v64\n\nCopy your N64 roms to $romdir/n64"
-rp_module_section="main"
+rp_module_section="opt"
 
 function sources_lr-mupen64plus() {
-    if isPlatform "rpi"; then
-        gitPullOrClone "$md_build" https://github.com/gizmo98/mupen64plus-libretro.git rpi2_fix
-    else
-        gitPullOrClone "$md_build" https://github.com/libretro/mupen64plus-libretro.git
-    fi
+    gitPullOrClone "$md_build" https://github.com/libretro/mupen64plus-libretro.git
 }
 
 function build_lr-mupen64plus() {
     rpSwap on 750
     make clean
-    if isPlatform "armv6"; then
+    if isPlatform "rpi"; then
         make platform="$__platform"
     else
         make

@@ -13,9 +13,14 @@ rp_module_id="bluetooth"
 rp_module_desc="Configure Bluetooth Devices"
 rp_module_section="config"
 
+function _update_hook_bluetooth() {
+    # fix config location
+    [[ -f "$configdir/bluetooth.cfg" ]] && mv "$configdir/bluetooth.cfg" "$configdir/all/bluetooth.cfg"
+}
+
 function _get_connect_mode() {
     # get bluetooth config
-    iniConfig "=" '"' "$configdir/bluetooth.cfg"
+    iniConfig "=" '"' "$configdir/all/bluetooth.cfg"
     iniGet "connect_mode"
     if [[ -n "$ini_value" ]]; then
         echo "$ini_value"
@@ -26,7 +31,7 @@ function _get_connect_mode() {
 
 function depends_bluetooth() {
     local depends=(bluetooth python-dbus python-gobject)
-    if isPlatform "rpi3" && hasPackage raspberrypi-bootloader && [[ "$__raspbian_ver" -ge "8" ]]; then
+    if [[ "$__os_id" == "Raspbian" ]] && compareVersions "$__os_release" ge 8; then
         depends+=(pi-bluetooth raspberrypi-sys-mods)
     fi
     getDepends "${depends[@]}"
@@ -36,7 +41,7 @@ function get_script_bluetooth() {
     name="$1"
     if ! which "$name"; then
         [[ "$name" == "bluez-test-input" ]] && name="bluez-test-device"
-        name="$scriptdir/scriptmodules/supplementary/$md_id/$name"
+        name="$md_data/$name"
     fi
     echo "$name"
 }
@@ -175,6 +180,7 @@ function register_bluetooth() {
     local line
     local pin
     local error=""
+    local skip_connect=0
     while read -r line; do
         case "$line" in
             "RequestPinCode"*)
@@ -193,14 +199,18 @@ function register_bluetooth() {
                 # read "Enter PIN Code:"
                 read -n 15 line
                 ;;
+            "RequestConfirmation"*)
+                # read "Confirm passkey (yes/no): "
+                echo "yes" >&3
+                read -n 26 line
+                skip_connect=1
+                break
+                ;;
             "DisplayPasskey"*|"DisplayPinCode"*)
                 # extract key from end of line
                 # DisplayPasskey (/org/bluez/1284/hci0/dev_01_02_03_04_05_06, 123456)
                 [[ "$line" =~ ,\ (.+)\) ]] && pin=${BASH_REMATCH[1]}
                 dialog --backtitle "$__backtitle" --infobox "Please enter pin $pin on your bluetooth device" 10 60
-                ;;
-            "Release")
-                success=1
                 ;;
             "Creating device failed"*)
                 error="$line"
@@ -210,6 +220,16 @@ function register_bluetooth() {
     done < <(stdbuf -oL $(get_script_bluetooth bluez-simple-agent) -c "$mode" hci0 "$mac_address" <&3)
     exec 3>&-
     rm -f "$fifo"
+
+    if [[ "$skip_connect" -eq 1 ]]; then
+        if hcitool con | grep -q "$mac_address"; then
+            printMsgs "dialog" "Successfully registered and connected to $mac_address"
+            return 0
+        else
+            printMsgs "dialog" "Unable to connect to bluetooth device. Please try pairing with the commandline tool 'bluetoothctl'"
+            return 1
+        fi
+    fi
 
     if [[ -z "$error" ]]; then
         error=$($(get_script_bluetooth bluez-test-device) trusted "$mac_address" yes 2>&1)
@@ -325,9 +345,9 @@ _EOF_
             rm -f "$config"
             ;;
     esac
-    iniConfig "=" '"' "$configdir/bluetooth.cfg"
+    iniConfig "=" '"' "$configdir/all/bluetooth.cfg"
     iniSet "connect_mode" "$choice"
-    chown $user:$user "$configdir/bluetooth.cfg"
+    chown $user:$user "$configdir/all/bluetooth.cfg"
 }
 
 function gui_bluetooth() {

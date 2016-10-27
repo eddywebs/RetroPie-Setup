@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -17,7 +17,7 @@ rp_module_flags="!mali"
 
 function depends_ags() {
     local depends=(xorg pkg-config libaldmb1-dev libfreetype6-dev libtheora-dev libvorbis-dev libogg-dev)
-    if [[ "$__raspbian_ver" -lt 8 ]]; then
+    if compareVersions "$__os_release" lt 8; then
         depends+=(liballegro4.2-dev)
     else
         depends+=(liballegro4-dev)

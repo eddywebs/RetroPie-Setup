@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -16,22 +16,7 @@ rp_module_section="opt"
 rp_module_flags="!x86"
 
 function sources_lr-armsnes() {
-    gitPullOrClone "$md_build" https://github.com/rmaz/ARMSNES-libretro
-    patch -p1 <<\_EOF_
-diff --git a/src/ppu.cpp b/src/ppu.cpp
-index 19340fb..6d1af27 100644
---- a/src/ppu.cpp
-+++ b/src/ppu.cpp
-@@ -714,7 +714,7 @@ uint8 S9xGetCPU(uint16 Address)
- 						}
- 					}
- 					return (
--						(IPPU.Joypads[0]
-+						(IPPU.Joypads[1]
- 							>> (PPU.Joypad2ButtonReadPos++ ^ 15))
- 							& 1);
- 				}
-_EOF_
+    gitPullOrClone "$md_build" https://github.com/RetroPie/ARMSNES-libretro
 }
 
 function build_lr-armsnes() {

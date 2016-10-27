@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -86,7 +86,7 @@ function game_data_dxx-rebirth() {
     if [[ ! -f "$romdir/ports/descent1/d1xr-sc55-music.dxa" ]]; then
         wget -nv -P "$romdir/ports/descent1" "$D1X_OGG_URL"
     fi
-    
+
     # Download / unpack / install Descent 2 shareware files
     if [[ ! -f "$romdir/ports/descent2/D2DEMO.HOG" ]]; then
         wget -nv "$D2X_SHARE_URL"

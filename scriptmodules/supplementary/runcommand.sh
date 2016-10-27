@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -13,9 +13,14 @@ rp_module_id="runcommand"
 rp_module_desc="The 'runcommand' launch script - needed for launching the emulators from the frontend"
 rp_module_section="core"
 
+function _update_hook_runcommand() {
+    # make sure runcommand is always updated when updating retropie-setup
+    rp_isInstalled "$md_idx" && install_bin_runcommand
+}
+
 function install_bin_runcommand() {
-    cp "$scriptdir/scriptmodules/$md_type/$md_id/runcommand.sh" "$md_inst/"
-    cp "$scriptdir/scriptmodules/$md_type/$md_id/joy2key.py" "$md_inst/"
+    cp "$md_data/runcommand.sh" "$md_inst/"
+    cp "$md_data/joy2key.py" "$md_inst/"
     chmod a+x "$md_inst/runcommand.sh"
     chmod a+x "$md_inst/joy2key.py"
     if [[ ! -f "$configdir/all/runcommand.cfg" ]]; then

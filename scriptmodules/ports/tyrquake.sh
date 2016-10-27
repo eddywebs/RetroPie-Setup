@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -38,13 +38,19 @@ function install_tyrquake() {
     )
 }
 
-function configure_tyrquake() {
-    addPort "$md_id" "quake" "Quake" "$md_inst/bin/tyr-quake -path $romdir/ports/quake/id1/pak0.pak"
+function add_games_tyrquake() {
+    _add_games_lr-tyrquake "$md_inst/bin/tyr-quake -basedir $romdir/ports/quake -game %QUAKEDIR%"
     if isPlatform "x11"; then
-        addPort "$md_id-gl" "quake" "Quake" "$md_inst/bin/tyr-glquake -path $romdir/ports/quake/id1/pak0.pak"
+        addSystem 1 "$md_id-gl" "quake pc ports" "$md_inst/bin/tyr-glquake -basedir $romdir/ports/quake -game %QUAKEDIR%"
     fi
+}
 
+function configure_tyrquake() {
     mkRomDir "ports/quake"
 
     [[ "$md_mode" == "install" ]] && game_data_lr-tyrquake
+
+    add_games_tyrquake
+
+    moveConfigDir "$home/.tyrquake" "$md_conf_root/quake/tyrquake"
 }

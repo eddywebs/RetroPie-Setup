@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -38,7 +38,7 @@ function build_uqm() {
     cd uqm-0.6.2.dfsg
     dpkg-buildpackage -us -uc
 }
- 
+
 function install_uqm() {
     cp -v *.deb "$md_inst"
     # uqm is missing on raspbian jessie
@@ -60,6 +60,10 @@ function install_bin_uqm() {
     else
         aptInstall uqm uqm-content uqm-music uqm-voice
     fi
+}
+
+function remove_uqm() {
+    aptRemove uqm uqm-content uqm-music uqm-voice
 }
 
 function configure_uqm() {

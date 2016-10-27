@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 
 # This file is part of The RetroPie Project
-# 
+#
 # The RetroPie Project is the legal property of its developers, whose names are
 # too numerous to list here. Please refer to the COPYRIGHT.md file distributed with this source.
-# 
-# See the LICENSE.md file at the top-level directory of this distribution and 
+#
+# See the LICENSE.md file at the top-level directory of this distribution and
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
@@ -20,7 +20,8 @@ function apt_upgrade_raspbiantools() {
 }
 
 function lxde_raspbiantools() {
-    aptInstall lxde xorg raspberrypi-ui-mods epiphany-browser
+    aptInstall --no-install-recommends lxde
+    aptInstall xorg raspberrypi-ui-mods rpi-chromium-mods
     setConfigRoot "ports"
     addPort "lxde" "lxde" "Desktop" "startx"
     enable_autostart
@@ -42,7 +43,7 @@ function enable_modules_raspbiantools() {
 
     local modules=(uinput)
     # joydev and snd-bcm2835 get loaded automatically on Jessie
-    if [[ "$__raspbian_ver" -lt "8" ]]; then
+    if compareVersions "$__os_release" lt 8; then
         modules+=(joydev snd-bcm2835)
     fi
 
@@ -62,7 +63,7 @@ function gui_raspbiantools() {
         local cmd=(dialog --backtitle "$__backtitle" --menu "Choose an option" 22 76 16)
         local options=(
             1 "Upgrade Raspbian packages"
-            2 "Install desktop environment (LXDE)"
+            2 "Install Pixel desktop environment"
             3 "Remove some uneeded packages (pulseaudio / cups / wolfram)"
             4 "Disable screen blanker"
             5 "Enable needed kernel modules (uinput joydev snd-bcm2835)"
@@ -74,6 +75,7 @@ function gui_raspbiantools() {
                     rp_callModule "$md_id" apt_upgrade
                     ;;
                 2)
+                    dialog --defaultno --yesno "Are you sure you want to install the Pixel desktop?" 22 76 2>&1 >/dev/tty || continue
                     rp_callModule "$md_id" lxde
                     printMsgs "dialog" "LXDE is installed."
                     local config="/etc/X11/Xwrapper.config"
