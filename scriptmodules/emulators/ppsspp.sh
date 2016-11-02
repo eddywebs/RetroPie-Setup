@@ -22,16 +22,21 @@ function depends_ppsspp() {
 }
 
 function sources_ppsspp() {
-    gitPullOrClone "$md_build" https://github.com/hrydgard/ppsspp.git
+    gitPullOrClone "$md_build/ppsspp" https://github.com/hrydgard/ppsspp.git
+    cd ppsspp
     runCmd git submodule update --init --recursive
     # remove the lines that trigger the ffmpeg build script functions - we will just use the variables from it
     sed -i "/^build_ARMv6$/,$ d" ffmpeg/linux_arm.sh
+    # temporary fix for building on rpi
+    isPlatform "rpi" && applyPatch "$md_data/01_arm_compile.diff"
 
-    mkdir cmake
+    cd ..
+    mkdir -p cmake
     wget -q -O- "$__archive_url/cmake-3.6.2.tar.gz" | tar -xvz --strip-components=1 -C cmake
 }
 
 function build_ffmpeg_ppsspp() {
+    cd "$md_build/ppsspp/ffmpeg"
     if isPlatform "arm"; then
         local MODULES
         local VIDEO_DECODERS
@@ -67,35 +72,41 @@ function build_ffmpeg_ppsspp() {
     make install
 }
 
-function build_ppsspp() {
-    cd cmake
+function build_cmake_ppsspp() {
+    cd "$md_build/cmake"
     ./bootstrap
     make
-    cd ..
+}
 
-    # build ffmpeg
-    cd ffmpeg
+function build_ppsspp() {
+    build_cmake_ppsspp
     build_ffmpeg_ppsspp
-    cd "$md_build"
 
     # build ppsspp
+    local cmake="$md_build/cmake/bin/cmake"
+    cd "$md_build/ppsspp"
     rm -f CMakeCache.txt
-    if isPlatform "rpi" && [[ "$__os_id" == "Raspbian" ]]; then
-        cmake/bin/cmake -DRASPBIAN=ON .
+    rm -rf CMakeFiles
+    if isPlatform "rpi"; then
+        if isPlatform "armv6"; then
+            "$cmake" -DCMAKE_TOOLCHAIN_FILE=cmake/Toolchains/raspberry.armv6.cmake .
+        else
+            "$cmake" -DCMAKE_TOOLCHAIN_FILE=cmake/Toolchains/raspberry.armv7.cmake .
+        fi
     else
-        cmake/bin/cmake .
+        "$cmake" .
     fi
     make clean
     make
 
-    md_ret_require="$md_build/PPSSPPSDL"
+    md_ret_require="$md_build/ppsspp/PPSSPPSDL"
 }
 
 function install_ppsspp() {
     md_ret_files=(
-        'assets'
-        'flash0'
-        'PPSSPPSDL'
+        'ppsspp/assets'
+        'ppsspp/flash0'
+        'ppsspp/PPSSPPSDL'
     )
 }
 
