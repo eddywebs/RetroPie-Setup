@@ -118,6 +118,9 @@ function rp_callModule() {
     case "$mode" in
         # remove sources
         clean)
+            #copy the sources to notices dir before removal
+            echo "copying $md_build to ~/notices dir"
+            cp $md_build /notices/
             rmDirExists "$md_build"
             return 0
             ;;
