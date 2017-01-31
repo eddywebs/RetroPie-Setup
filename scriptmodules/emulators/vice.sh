@@ -11,20 +11,12 @@
 
 rp_module_id="vice"
 rp_module_desc="C64 emulator VICE"
-rp_module_help="ROM Extensions: .crt .d64 .g64 .prg .t64 .tap .x64 .zip .vsf\n\nCopy your Commodore 64 roms to $romdir/c64"
+rp_module_help="ROM Extensions: .crt .d64 .g64 .prg .t64 .tap .x64 .zip .vsf\n\nCopy your Commodore 64 games to $romdir/c64"
 rp_module_section="opt"
 rp_module_flags=""
 
 function depends_vice() {
-    local depends=(libsdl2-dev libpng12-dev zlib1g-dev libasound2-dev libpcap-dev automake checkinstall bison flex subversion)
-
-    if compareVersions "$__os_release" lt 8; then
-        depends+=(libjpeg8-dev )
-    else
-        depends+=(libjpeg-dev)
-    fi
-
-    getDepends "${depends[@]}"
+    getDepends libsdl2-dev libmpg123-dev libpng12-dev zlib1g-dev libasound2-dev libvorbis-dev libflac-dev libpcap-dev automake checkinstall bison flex subversion libjpeg-dev
 }
 
 function sources_vice() {
@@ -45,15 +37,45 @@ function install_vice() {
 }
 
 function configure_vice() {
+    # get a list of supported extensions
+    local exts="$(getPlatformConfig c64_exts)"
+
+    # install the vice start script
+    mkdir -p "$md_inst/bin"
+    cat > "$md_inst/bin/vice.sh" << _EOF_
+#!/bin/bash
+
+BIN="\${0%/*}/\$1"
+ROM="\$2"
+
+romdir="\${ROM%/*}"
+ext="\${ROM##*.}"
+source "$rootdir/lib/archivefuncs.sh"
+
+archiveExtract "\$ROM" "$exts"
+
+# check successful extraction and if we have at least one file
+if [[ \$? == 0 ]]; then
+    ROM="\${arch_files[0]}"
+    romdir="\$arch_dir"
+fi
+
+"\$BIN" -chdir "\$romdir" "\$ROM"
+archiveCleanup
+_EOF_
+
+    chmod +x "$md_inst/bin/vice.sh"
+
     mkRomDir "c64"
 
-    addSystem 1 "$md_id-x64" "c64" "$md_inst/bin/x64 %ROM%"
-    addSystem 0 "$md_id-x64sc" "c64" "$md_inst/bin/x64sc %ROM%"
-    addSystem 0 "$md_id-x128" "c64" "$md_inst/bin/x128 %ROM%"
-    addSystem 0 "$md_id-xpet" "c64" "$md_inst/bin/xpet %ROM%"
-    addSystem 0 "$md_id-xplus4" "c64" "$md_inst/bin/xplus4 %ROM%"
-    addSystem 0 "$md_id-xvic" "c64" "$md_inst/bin/xvic %ROM%"
-    addSystem 0 "$md_id-xvic-cart" "c64" "$md_inst/bin/xvic -cartgeneric %ROM%"
+    addEmulator 1 "$md_id-x64" "c64" "$md_inst/bin/vice.sh x64 %ROM%"
+    addEmulator 0 "$md_id-x64sc" "c64" "$md_inst/bin/vice.sh x64sc %ROM%"
+    addEmulator 0 "$md_id-x128" "c64" "$md_inst/bin/vice.sh x128 %ROM%"
+    addEmulator 0 "$md_id-xpet" "c64" "$md_inst/bin/vice.sh xpet %ROM%"
+    addEmulator 0 "$md_id-xplus4" "c64" "$md_inst/bin/vice.sh xplus4 %ROM%"
+    addEmulator 0 "$md_id-xvic" "c64" "$md_inst/bin/vice.sh xvic %ROM%"
+    addEmulator 0 "$md_id-xvic-cart" "c64" "$md_inst/bin/vice.sh 'xvic -cartgeneric' %ROM%"
+    addSystem "c64"
 
     [[ "$md_mode" == "remove" ]] && return
 

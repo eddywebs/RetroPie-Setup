@@ -25,8 +25,11 @@ function sources_lr-snes9x2010() {
 
 function build_lr-snes9x2010() {
     make -f Makefile.libretro clean
-    if isPlatform "neon"; then
-        make -f Makefile.libretro platform=armvneon
+    local platform=""
+    isPlatform "arm" && platform+="armv"
+    isPlatform "neon" && platform+="neon"
+    if [[ -n "$platform" ]]; then
+        make -f Makefile.libretro platform="$platform"
     else
         make -f Makefile.libretro
     fi
@@ -46,5 +49,6 @@ function configure_lr-snes9x2010() {
 
     local def=1
     isPlatform "armv6" && def=0
-    addSystem $def "$md_id" "snes" "$md_inst/snes9x2010_libretro.so"
+    addEmulator $def "$md_id" "snes" "$md_inst/snes9x2010_libretro.so"
+    addSystem "snes"
 }

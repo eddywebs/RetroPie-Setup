@@ -11,7 +11,7 @@
 
 rp_module_id="fbzx"
 rp_module_desc="ZXSpectrum emulator FBZX"
-rp_module_help="ROM Extensions: .sna .szx .z80 .tap .tzx .gz .udi .mgt .img .trd .scl .dsk .zip\n\nCopy your ZX Spectrum roms to $romdir/zxspectrum"
+rp_module_help="ROM Extensions: .sna .szx .z80 .tap .tzx .gz .udi .mgt .img .trd .scl .dsk .zip\n\nCopy your ZX Spectrum to $romdir/zxspectrum"
 rp_module_section="opt"
 rp_module_flags="dispmanx !mali"
 
@@ -47,5 +47,6 @@ function install_fbzx() {
 function configure_fbzx() {
     mkRomDir "zxspectrum"
 
-    addSystem 0 "$md_id" "zxspectrum" "pushd $md_inst/share; $md_inst/bin/fbzx %ROM%; popd"
+    addEmulator 0 "$md_id" "zxspectrum" "pushd $md_inst/share; $md_inst/bin/fbzx %ROM%; popd"
+    addSystem "zxspectrum"
 }

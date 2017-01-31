@@ -34,6 +34,10 @@ function build_ps3controller() {
     cd sixad
     make clean
     make "${params[@]}"
+    local bin
+    for bin in sixad-bin sixpair sixad-sixaxis sixad-remote sixad-raw sixad-3in1; do
+        md_ret_require+=("$md_build/sixad/bins/$bin")
+    done
 }
 
 function install_ps3controller() {
@@ -46,12 +50,10 @@ function install_ps3controller() {
 
     echo "$branch" >"$md_inst/type.txt"
 
-    if compareVersions "$__os_release" ge 8; then
-        # Disable timeouts
-        iniConfig " = " "" "/etc/bluetooth/main.conf"
-        iniSet "DiscoverableTimeout" "0"
-        iniSet "PairableTimeout" "0"
-    fi
+    # Disable timeouts
+    iniConfig " = " "" "/etc/bluetooth/main.conf"
+    iniSet "DiscoverableTimeout" "0"
+    iniSet "PairableTimeout" "0"
 
     # Start sixad daemon
     /etc/init.d/sixad start

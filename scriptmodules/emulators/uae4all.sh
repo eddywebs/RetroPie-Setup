@@ -11,7 +11,7 @@
 
 rp_module_id="uae4all"
 rp_module_desc="Amiga emulator UAE4All"
-rp_module_help="ROM Extension: .adf\n\nCopy your Amiga roms to $romdir/amiga\n\nCopy the required BIOS files\nkick13.rom\nkick20.rom\nkick31.rom\nto $biosdir"
+rp_module_help="ROM Extension: .adf\n\nCopy your Amiga games to $romdir/amiga\n\nCopy the required BIOS files\nkick13.rom\nkick20.rom\nkick31.rom\nto $biosdir"
 rp_module_section="opt"
 rp_module_flags="dispmanx !x86 !mali"
 
@@ -137,5 +137,6 @@ _EOF_
         rm -f "$biosdir/aros-amiga-m68k"*
     fi
 
-    addSystem 1 "$md_id" "amiga" "bash $romdir/amiga/+Start\ UAE4All.sh" "Amiga" ".sh"
+    addEmulator 1 "$md_id" "amiga" "bash $romdir/amiga/+Start\ UAE4All.sh"
+    addSystem "amiga"
 }

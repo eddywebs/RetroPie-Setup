@@ -55,9 +55,6 @@ function rps_printInfo() {
 }
 
 function depends_setup() {
-    if compareVersions "$__os_release" lt 8; then
-        printMsgs "dialog" "Raspbian versions older than 8.0 are no longer supported. Binaries are no longer updated and new emulators may fail to build, install or run.\n\nPlease backup your system and start from the latest image."
-    fi
     # check for VERSION file - if it doesn't exist we will run the post_update script as it won't be triggered
     # on first upgrade to 4.x
     if [[ ! -f "$rootdir/VERSION" ]]; then
@@ -152,6 +149,10 @@ function package_setup() {
             options+=(X "Remove")
         fi
 
+        if [[ -d "$__builddir/$md_id" ]]; then
+            options+=(Z "Clean source folder")
+        fi
+
         local help="${__mod_desc[$idx]}\n\n${__mod_help[$idx]}"
         if [[ -n "$help" ]]; then
             options+=(H "Package Help")
@@ -209,6 +210,10 @@ function package_setup() {
                 ;;
             H)
                 printMsgs "dialog" "$help"
+                ;;
+            Z)
+                rp_callModule "$idx" clean
+                printMsgs "dialog" "$__builddir/$md_id has been removed."
                 ;;
             *)
                 break

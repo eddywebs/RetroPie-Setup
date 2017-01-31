@@ -33,7 +33,7 @@ function install_lr-nestopia() {
         'NstDatabase.xml'
         'README.md'
         'README.unix'
-        'changelog.txt'
+        'ChangeLog'
         'readme.html'
         'COPYING'
         'AUTHORS'
@@ -46,6 +46,10 @@ function configure_lr-nestopia() {
     ensureSystemretroconfig "nes"
     ensureSystemretroconfig "fds"
 
-    addSystem 0 "$md_id" "nes" "$md_inst/nestopia_libretro.so"
-    addSystem 1 "$md_id" "fds" "$md_inst/nestopia_libretro.so"
+    cp NstDatabase.xml "$biosdir/"
+
+    addEmulator 0 "$md_id" "nes" "$md_inst/nestopia_libretro.so"
+    addEmulator 1 "$md_id" "fds" "$md_inst/nestopia_libretro.so"
+    addSystem "nes"
+    addSystem "fds"
 }

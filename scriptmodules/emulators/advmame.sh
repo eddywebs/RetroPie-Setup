@@ -16,11 +16,14 @@ rp_module_section="opt"
 rp_module_flags="!mali"
 
 function _get_vers_advmame() {
-    echo 0.94.0 1.4
+    echo 0.94.0 1.4 3.1
 }
 
 function depends_advmame() {
-    getDepends libsdl1.2-dev
+    local depends=(libsdl1.2-dev)
+    isPlatform "x11" && depends+=(libsdl2-dev)
+    isPlatform "rpi" && depends+=(libraspberrypi-dev)
+    getDepends "${depends[@]}"
 }
 
 function sources_advmame() {
@@ -42,9 +45,10 @@ function sources_advmame() {
             if [[ "$version" == "0.94.0" ]]; then
                 sed -i 's/MAP_SHARED | MAP_FIXED,/MAP_SHARED,/' advance/linux/vfb.c
             fi
-            # patch advmame to use a fake generated mode with the exact dimensions for fb - avoids need for configuring monitor / clocks.
-            # the pi framebuffer doesn't use any of the framebuffer timing configs - it hardware scales from chosen dimensions to actual size
-            applyPatch rpi_framebuffer.diff <<\_EOF_
+            if [[ "$version" == "0.94.0" || "$version" == "1.4" ]]; then
+                # patch advmame to use a fake generated mode with the exact dimensions for fb - avoids need for configuring monitor / clocks.
+                # the pi framebuffer doesn't use any of the framebuffer timing configs - it hardware scales from chosen dimensions to actual size
+                applyPatch rpi_framebuffer.diff <<\_EOF_
 --- a/advance/linux/vfb.c
 +++ b/advance/linux/vfb.c
 @@ -268,7 +268,7 @@
@@ -137,6 +141,7 @@ function sources_advmame() {
  
  	option->cheat_flag = conf_bool_get_default(cfg_context, "misc_cheat");
 _EOF_
+            fi
         fi
         popd
     done
@@ -188,7 +193,7 @@ function configure_advmame() {
             iniConfig " " "" "$md_conf_root/mame-advmame/advmame-$version.rc"
 
             iniSet "misc_quiet" "yes"
-            iniSet "dir_rom" "$romdir/mame-advmame"
+            iniSet "dir_rom" "$romdir/mame-advmame:$romdir/arcade"
             iniSet "dir_artwork" "$romdir/mame-advmame/artwork"
             iniSet "dir_sample" "$romdir/mame-advmame/samples"
             iniSet "dir_diff" "$romdir/mame-advmame/diff"
@@ -207,6 +212,9 @@ function configure_advmame() {
                 iniSet "device_sound" "alsa"
                 iniSet "display_vsync" "no"
                 iniSet "sound_normalize" "no"
+                iniSet "display_resizeeffect" "none"
+                iniSet "display_resize" "integer"
+                iniSet "display_magnify" "1"
             else
                 iniSet "device_video_output" "overlay"
                 iniSet "display_aspectx" 16
@@ -225,9 +233,11 @@ function configure_advmame() {
         if isPlatform "rpi"; then
             [[ "$version" == "0.94.0" ]] && default=1
         else
-            [[ "$version" == "1.4" ]] && default=1
+            [[ "$version" == "3.1" ]] && default=1
         fi
-        addSystem 0 "$md_id-$version" "arcade" "$md_inst/$version/bin/advmame %BASENAME%"
-        addSystem $default "$md_id-$version" "mame-advmame arcade mame" "$md_inst/$version/bin/advmame %BASENAME%"
+        addEmulator 0 "$md_id-$version" "arcade" "$md_inst/$version/bin/advmame %BASENAME%"
+        addEmulator $default "$md_id-$version" "mame-advmame" "$md_inst/$version/bin/advmame %BASENAME%"
     done
+    addSystem "arcade"
+    addSystem "mame-advmame"
 }

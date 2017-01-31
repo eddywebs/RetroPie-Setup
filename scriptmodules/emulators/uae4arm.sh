@@ -11,7 +11,7 @@
 
 rp_module_id="uae4arm"
 rp_module_desc="Amiga emulator with JIT support"
-rp_module_help="ROM Extension: .adf\n\nCopy your Amiga roms to $romdir/amiga\n\nCopy the required BIOS files\nkick13.rom\nkick20.rom\nkick31.rom\nto $biosdir"
+rp_module_help="ROM Extension: .adf\n\nCopy your Amiga games to $romdir/amiga\n\nCopy the required BIOS files\nkick13.rom\nkick20.rom\nkick31.rom\nto $biosdir"
 rp_module_section="opt"
 rp_module_flags="!x86 !mali"
 
@@ -67,5 +67,6 @@ _EOF_
     chmod a+x "$romdir/amiga/+Start UAE4Arm.sh"
     chown $user:$user "$romdir/amiga/+Start UAE4Arm.sh"
 
-    addSystem 1 "$md_id" "amiga" "bash $romdir/amiga/+Start\ UAE4Arm.sh" "Amiga" ".sh"
+    addEmulator 1 "$md_id" "amiga" "bash $romdir/amiga/+Start\ UAE4Arm.sh"
+    addSystem "amiga"
 }

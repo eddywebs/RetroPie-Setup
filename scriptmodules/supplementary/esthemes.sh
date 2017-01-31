@@ -45,14 +45,16 @@ function uninstall_theme_esthemes() {
 }
 
 function gui_esthemes() {
-    printMsgs "dialog" "If you wish to run more than ~10 systems on themes other than Carbon, Pixel, Eudora, Turtle-pi, and Canela variants, you run the risk of getting the white screen of death (you may be able to get more systems by increasing your GPU/CPU split)."
     local themes=(
         'RetroPie carbon'
         'RetroPie carbon-centered'
         'RetroPie carbon-nometa'
-        'RetroPie pixel'
-        'HerbFargus pixel-meta'
-        'HerbFargus pixel-tft'
+        'ehettervik pixel'
+        'ehettervik pixel-metadata'
+        'ehettervik pixel-tft'
+        'ehettervik luminous'
+        'ehettervik minilumi'
+        'ehettervik workbench'
         'AmadhiX eudora'
         'AmadhiX eudora-bigshot'
         'AmadhiX eudora-concise'
@@ -74,8 +76,6 @@ function gui_esthemes() {
         'robertybob simplebigart'
         'RetroPie clean-look'
         'HerbFargus tronkyfran'
-        'HerbFargus luminous'
-        'HerbFargus minilumi'
     )
     while true; do
         local theme

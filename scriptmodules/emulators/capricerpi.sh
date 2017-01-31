@@ -11,7 +11,7 @@
 
 rp_module_id="capricerpi"
 rp_module_desc="Amstrad CPC emulator - port of Caprice32 for the RPI"
-rp_module_help="ROM Extensions: .cdt .cpc .dsk\n\nCopy your Amstrad CPC roms to $romdir/amstradcpc"
+rp_module_help="ROM Extensions: .cdt .cpc .dsk\n\nCopy your Amstrad CPC games to $romdir/amstradcpc"
 rp_module_section="opt"
 rp_module_flags="dispmanx !x86 !mali"
 
@@ -39,5 +39,6 @@ function install_capricerpi() {
 function configure_capricerpi() {
     mkRomDir "amstradcpc"
 
-    addSystem 0 "$md_id" "amstradcpc" "$md_inst/capriceRPI %ROM%"
+    addEmulator 0 "$md_id" "amstradcpc" "$md_inst/capriceRPI %ROM%"
+    addSystem "amstradcpc"
 }

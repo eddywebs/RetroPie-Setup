@@ -15,12 +15,11 @@ rp_module_section="opt"
 rp_module_flags="dispmanx !mali"
 
 function depends_zdoom() {
-    local depends=(libev-dev libsdl2-dev libmpg123-dev libsndfile1-dev zlib1g-dev libbz2-dev timidity cmake)
-    if compareVersions "$__os_release" lt 8; then
-        depends+=(libjpeg8-dev)
-    else
-        depends+=(libjpeg-dev)
-    fi
+    local depends=(
+        libev-dev libsdl2-dev libmpg123-dev libsndfile1-dev zlib1g-dev libbz2-dev
+        timidity freepats cmake libopenal-dev libjpeg-dev
+    )
+
     getDepends "${depends[@]}"
 }
 
@@ -32,8 +31,8 @@ function build_zdoom() {
     rm -rf release
     mkdir -p release
     cd release
-    local params=()
-    cmake -DCMAKE_INSTALL_PREFIX="$md_inst" -DCMAKE_BUILD_TYPE=Release -DNO_ASM=1 "${params[@]}" ..
+    local params=(-DCMAKE_INSTALL_PREFIX="$md_inst" -DCMAKE_BUILD_TYPE=Release)
+    cmake "${params[@]}" ..
     make
     md_ret_require="$md_build/release/zdoom"
 }

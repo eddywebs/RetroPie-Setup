@@ -11,7 +11,7 @@
 
 rp_module_id="lr-beetle-pcfx"
 rp_module_desc="PCFX emulator - Mednafen PCFX Port for libretro"
-rp_module_help="ROM Extensions: .img .iso .ccd .cue\n\nCopy the required BIOS file pcfx.bios to $biosdir"
+rp_module_help="ROM Extensions: .img .iso .ccd .cue\n\nCopy the required BIOS file pcfx.rom to $biosdir"
 rp_module_section="exp"
 
 function sources_lr-beetle-pcfx() {
@@ -34,5 +34,6 @@ function configure_lr-beetle-pcfx() {
     mkRomDir "pcfx"
     ensureSystemretroconfig "pcfx"
 
-    addSystem 1 "$md_id" "pcfx" "$md_inst/mednafen_pcfx_libretro.so"
+    addEmulator 1 "$md_id" "pcfx" "$md_inst/mednafen_pcfx_libretro.so"
+    addSystem "pcfx"
 }

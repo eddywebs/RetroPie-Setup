@@ -25,9 +25,7 @@ function sources_lr-fbalpha() {
 
 function build_lr-fbalpha() {
     make -f makefile.libretro clean
-    local params=()
-    isPlatform "arm" && params+=("platform=armv")
-    make -f makefile.libretro "${params[@]}" profile=performance
+    make -f makefile.libretro profile=performance
     md_ret_require="$md_build/fbalpha_libretro.so"
 }
 
@@ -57,7 +55,10 @@ function configure_lr-fbalpha() {
 
     local def=1
     isPlatform "armv6" && def=0
-    addSystem 0 "$md_id" "arcade" "$md_inst/fbalpha_libretro.so"
-    addSystem $def "$md_id" "neogeo" "$md_inst/fbalpha_libretro.so"
-    addSystem $def "$md_id" "fba arcade" "$md_inst/fbalpha_libretro.so"
+    addEmulator 0 "$md_id" "arcade" "$md_inst/fbalpha_libretro.so"
+    addEmulator $def "$md_id" "neogeo" "$md_inst/fbalpha_libretro.so"
+    addEmulator $def "$md_id" "fba" "$md_inst/fbalpha_libretro.so"
+    addSystem "arcade"
+    addSystem "neogeo"
+    addSystem "fba"
 }

@@ -11,7 +11,7 @@
 
 rp_module_id="simcoupe"
 rp_module_desc="SimCoupe SAM Coupe emulator"
-rp_module_help="ROM Extensions: .dsk .mgt .sbt .sad\n\nCopy your SAM Coupe roms to $romdir/samcoupe."
+rp_module_help="ROM Extensions: .dsk .mgt .sbt .sad\n\nCopy your SAM Coupe games to $romdir/samcoupe."
 rp_module_section="opt"
 rp_module_flags="!mali"
 
@@ -45,5 +45,6 @@ function configure_simcoupe() {
     mkRomDir "samcoupe"
     moveConfigDir "$home/.simcoupe" "$md_conf_root/$md_id"
 
-    addSystem 1 "$md_id" "samcoupe" "pushd $md_inst; $md_inst/simcoupe autoboot -disk1 %ROM% -fullscreen; popd"
+    addEmulator 1 "$md_id" "samcoupe" "pushd $md_inst; $md_inst/simcoupe autoboot -disk1 %ROM% -fullscreen; popd"
+    addSystem "samcoupe"
 }
