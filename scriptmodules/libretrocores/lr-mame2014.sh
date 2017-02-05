@@ -21,7 +21,7 @@ function sources_lr-mame2014() {
 function build_lr-mame2014() {
     rpSwap on 750
     make clean
-    make "${params[@]}"
+    make
     rpSwap off
     md_ret_require="$md_build/mame2014_libretro.so"
 }
@@ -34,11 +34,11 @@ function install_lr-mame2014() {
 }
 
 function configure_lr-mame2014() {
-    mkRomDir "arcade"
-    mkRomDir "mame-libretro"
-    ensureSystemretroconfig "arcade"
-    ensureSystemretroconfig "mame-libretro"
-
-    addSystem 0 "$md_id" "arcade" "$md_inst/mame2014_libretro.so"
-    addSystem 0 "$md_id" "mame-libretro arcade mame" "$md_inst/mame2014_libretro.so"
+    local system
+    for system in arcade mame-libretro; do
+        mkRomDir "$system"
+        ensureSystemretroconfig "$system"
+        addEmulator 0 "$md_id" "$system" "$md_inst/mame2014_libretro.so"
+        addSystem "$system"
+    done
 }

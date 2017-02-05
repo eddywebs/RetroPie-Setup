@@ -21,7 +21,7 @@ function sources_lr-mupen64plus() {
 function build_lr-mupen64plus() {
     rpSwap on 750
     make clean
-    if isPlatform "rpi"; then
+    if isPlatform "rpi" || isPlatform "odroid-c1"; then
         make platform="$__platform"
     else
         make
@@ -151,5 +151,6 @@ target FPS=25
 _EOF_
     chown $user:$user "$biosdir/gles2n64rom.conf"
 
-    addSystem 0 "$md_id" "n64" "$md_inst/mupen64plus_libretro.so"
+    addEmulator 0 "$md_id" "n64" "$md_inst/mupen64plus_libretro.so"
+    addSystem "n64"
 }

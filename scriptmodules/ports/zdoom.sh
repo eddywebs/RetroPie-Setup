@@ -15,12 +15,11 @@ rp_module_section="opt"
 rp_module_flags="dispmanx !mali"
 
 function depends_zdoom() {
-    local depends=(libev-dev libsdl2-dev libmpg123-dev libsndfile1-dev zlib1g-dev libbz2-dev timidity cmake)
-    if compareVersions "$__os_release" lt 8; then
-        depends+=(libjpeg8-dev)
-    else
-        depends+=(libjpeg-dev)
-    fi
+    local depends=(
+        libev-dev libsdl2-dev libmpg123-dev libsndfile1-dev zlib1g-dev libbz2-dev
+        timidity freepats cmake libopenal-dev libjpeg-dev
+    )
+
     getDepends "${depends[@]}"
 }
 
@@ -32,8 +31,8 @@ function build_zdoom() {
     rm -rf release
     mkdir -p release
     cd release
-    local params=()
-    cmake -DCMAKE_INSTALL_PREFIX="$md_inst" -DCMAKE_BUILD_TYPE=Release -DNO_ASM=1 "${params[@]}" ..
+    local params=(-DCMAKE_INSTALL_PREFIX="$md_inst" -DCMAKE_BUILD_TYPE=Release)
+    cmake "${params[@]}" ..
     make
     md_ret_require="$md_build/release/zdoom"
 }
@@ -45,13 +44,17 @@ function install_zdoom() {
     )
 }
 
-function configure_zdoom() {
-    addPort "$md_id" "doom" "Doom" "$md_inst/zdoom -iwad $romdir/ports/doom/doom1.wad"
+function add_games_zdoom() {
+    _add_games_lr-prboom "$md_inst/zdoom +set fullscreen 1 -iwad %ROM%"
+}
 
+function configure_zdoom() {
     mkRomDir "ports/doom"
 
     mkUserDir "$home/.config"
     moveConfigDir "$home/.config/zdoom" "$md_conf_root/doom"
 
     [[ "$md_mode" == "install" ]] && game_data_lr-prboom
+
+    add_games_zdoom
 }

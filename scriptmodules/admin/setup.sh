@@ -55,9 +55,6 @@ function rps_printInfo() {
 }
 
 function depends_setup() {
-    if compareVersions "$__os_release" lt 8; then
-        printMsgs "dialog" "Raspbian versions older than 8.0 are no longer supported. Binaries are no longer updated and new emulators may fail to build, install or run.\n\nPlease backup your system and start from the latest image."
-    fi
     # check for VERSION file - if it doesn't exist we will run the post_update script as it won't be triggered
     # on first upgrade to 4.x
     if [[ ! -f "$rootdir/VERSION" ]]; then
@@ -114,7 +111,7 @@ function post_update_setup() {
     } &> >(tee >(gzip --stdout >"$logfilename"))
     rps_printInfo "$logfilename"
 
-    printMsgs "dialog" "NOTICE: Retropie is an open source software licensed under GPL, the source code for with redistribution is available at: https://github.com/eddywebs/RetroPie-Setup"
+    printMsgs "dialog" "NOTICE: The RetroPie-Setup script and pre-made RetroPie SD card images are available to download for free from https://retropie.org.uk.\n\nThe pre-built RetroPie image includes software that has non commercial licences. Selling RetroPie images or including RetroPie with your commercial product is not allowed.\n\nNo copyrighted games are included with RetroPie.\n\nIf you have been sold this software, you can let us know about it by emailing retropieproject@gmail.com."
 
     # return to set return function
     "${return_func[@]}"
@@ -150,6 +147,10 @@ function package_setup() {
                 options+=(C "Configuration / Options")
             fi
             options+=(X "Remove")
+        fi
+
+        if [[ -d "$__builddir/$md_id" ]]; then
+            options+=(Z "Clean source folder")
         fi
 
         local help="${__mod_desc[$idx]}\n\n${__mod_help[$idx]}"
@@ -209,6 +210,10 @@ function package_setup() {
                 ;;
             H)
                 printMsgs "dialog" "$help"
+                ;;
+            Z)
+                rp_callModule "$idx" clean
+                printMsgs "dialog" "$__builddir/$md_id has been removed."
                 ;;
             *)
                 break
@@ -403,20 +408,10 @@ function update_packages_gui_setup() {
 }
 
 function basic_install_setup() {
-    clear
-    local logfilename
-    __ERRMSGS=()
-    __INFMSGS=()
-    rps_logInit
-    {
-        rps_logStart
-        local idx
-        for idx in $(rp_getSectionIds core) $(rp_getSectionIds main); do
-            rp_installModule "$idx"
-        done
-        rps_logEnd
-    } &> >(tee >(gzip --stdout >"$logfilename"))
-    rps_printInfo "$logfilename"
+    local idx
+    for idx in $(rp_getSectionIds core) $(rp_getSectionIds main); do
+        rp_installModule "$idx"
+    done
 }
 
 function packages_gui_setup() {
@@ -519,7 +514,17 @@ function gui_setup() {
         case "$choice" in
             I)
                 dialog --defaultno --yesno "Are you sure you want to do a basic install?\n\nThis will install all packages from the 'Core' and 'Main' package sections." 22 76 2>&1 >/dev/tty || continue
-                basic_install_setup
+                clear
+                local logfilename
+                __ERRMSGS=()
+                __INFMSGS=()
+                rps_logInit
+                {
+                    rps_logStart
+                    basic_install_setup
+                    rps_logEnd
+                } &> >(tee >(gzip --stdout >"$logfilename"))
+                rps_printInfo "$logfilename"
                 ;;
             U)
                 update_packages_gui_setup

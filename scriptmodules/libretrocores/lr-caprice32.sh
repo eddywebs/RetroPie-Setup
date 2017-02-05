@@ -11,7 +11,7 @@
 
 rp_module_id="lr-caprice32"
 rp_module_desc="Amstrad CPC emu - Caprice32 port for libretro"
-rp_module_help="ROM Extensions: .cdt .cpc .dsk\n\nCopy your Amstrad CPC roms to $romdir/amstradcpc"
+rp_module_help="ROM Extensions: .cdt .cpc .dsk\n\nCopy your Amstrad CPC games to $romdir/amstradcpc"
 rp_module_section="main"
 
 function sources_lr-caprice32() {
@@ -38,5 +38,6 @@ function configure_lr-caprice32() {
     setRetroArchCoreOption "cap32_Model" "6128"
     setRetroArchCoreOption "cap32_Ram" "128"
 
-    addSystem 1 "$md_id" "amstradcpc" "$md_inst/cap32_libretro.so"
+    addEmulator 1 "$md_id" "amstradcpc" "$md_inst/cap32_libretro.so"
+    addSystem "amstradcpc"
 }

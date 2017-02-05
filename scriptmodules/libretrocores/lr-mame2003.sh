@@ -37,6 +37,7 @@ function install_lr-mame2003() {
         'changed.txt'
         'whatsnew.txt'
         'whatsold.txt'
+        'metadata'
     )
 }
 
@@ -56,11 +57,17 @@ function configure_lr-mame2003() {
     mkUserDir "$biosdir/mame2003"
     mkUserDir "$biosdir/mame2003/samples"
 
+    # copy hiscore.dat
+    cp "$md_inst/metadata/hiscore.dat" "$biosdir/mame2003/"
+    chown $user:$user "$biosdir/mame2003/hiscore.dat"
+
     # Set core options
     setRetroArchCoreOption "mame2003-skip_disclaimer" "enabled"
     setRetroArchCoreOption "mame2003-dcs-speedhack" "enabled"
     setRetroArchCoreOption "mame2003-samples" "enabled"
 
-    addSystem 0 "$md_id" "arcade" "$md_inst/mame2003_libretro.so"
-    addSystem 1 "$md_id" "mame-libretro arcade mame" "$md_inst/mame2003_libretro.so"
+    addEmulator 0 "$md_id" "arcade" "$md_inst/mame2003_libretro.so"
+    addEmulator 1 "$md_id" "mame-libretro" "$md_inst/mame2003_libretro.so"
+    addSystem "arcade"
+    addSystem "mame-libretro"
 }

@@ -11,7 +11,7 @@
 
 rp_module_id="lr-bluemsx"
 rp_module_desc="MSX/MSX2 emu - blueMSX port for libretro"
-rp_module_help="ROM Extensions: .rom .mx1 .mx2 .col .dsk .zip\n\nCopy your MSX/MSX2 roms to $romdir/msx"
+rp_module_help="ROM Extensions: .rom .mx1 .mx2 .col .dsk .zip\n\nCopy your MSX/MSX2 games to $romdir/msx"
 rp_module_section="main"
 
 function sources_lr-bluemsx() {
@@ -42,5 +42,6 @@ function configure_lr-bluemsx() {
 
     wget -q -O- "$__archive_url/bluemsxroms.tar.gz" | tar -xvz -C "$biosdir/Machines/Shared Roms/"
 
-    addSystem 1 "$md_id" "msx" "$md_inst/bluemsx_libretro.so"
+    addEmulator 1 "$md_id" "msx" "$md_inst/bluemsx_libretro.so"
+    addSystem "msx"
 }

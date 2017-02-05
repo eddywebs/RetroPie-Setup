@@ -29,16 +29,18 @@ function build_lr-imame4all() {
 function install_lr-imame4all() {
     md_ret_files=(
         'mame2000_libretro.so'
-        'Readme.txt'
+        'readme.md'
+        'readme.txt'
+        'whatsnew.txt'
     )
 }
 
 function configure_lr-imame4all() {
-    mkRomDir "arcade"
-    mkRomDir "mame-mame4all"
-    ensureSystemretroconfig "arcade"
-    ensureSystemretroconfig "mame-mame4all"
-
-    addSystem 0 "$md_id" "arcade" "$md_inst/mame2000_libretro.so"
-    addSystem 0 "$md_id" "mame-mame4all arcade mame" "$md_inst/mame2000_libretro.so"
+    local system
+    for system in arcade mame-libretro; do
+        mkRomDir "$system"
+        ensureSystemretroconfig "$system"
+        addEmulator 0 "$md_id" "$system" "$md_inst/mame2000_libretro.so"
+        addSystem "$system"
+    done
 }

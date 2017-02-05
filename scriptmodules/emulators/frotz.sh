@@ -11,7 +11,7 @@
 
 rp_module_id="frotz"
 rp_module_desc="Z-Machine Interpreter for Infocom games"
-rp_module_help="ROM Extensions: .dat .zip .z1 .z2 .z3 .z4 .z5 .z6 .z7 .z8\n\nCopy your Infocom roms to $romdir/zmachine"
+rp_module_help="ROM Extensions: .dat .zip .z1 .z2 .z3 .z4 .z5 .z6 .z7 .z8\n\nCopy your Infocom games to $romdir/zmachine"
 rp_module_section="opt"
 rp_module_flags="!mali"
 
@@ -47,7 +47,8 @@ function configure_frotz() {
     mkRomDir "zmachine"
 
     # CON: to stop runcommand from redirecting stdout to log
-    addSystem 1 "$md_id" "zmachine" "CON:pushd $romdir/zmachine; frotz %ROM%; popd" "Z-machine" ".dat .zip .z1 .z2 .z3 .z4 .z5 .z6 .z7 .z8"
+    addEmulator 1 "$md_id" "zmachine" "CON:pushd $romdir/zmachine; frotz %ROM%; popd"
+    addSystem "zmachine"
 
     [[ "$md_mode" == "install" ]] && game_data_frotz
 }
