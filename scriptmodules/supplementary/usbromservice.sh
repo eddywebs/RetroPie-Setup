@@ -35,7 +35,8 @@ function build_usbromservice() {
 }
 
 function install_usbromservice() {
-    dpkg -i ../*_all.deb
+    dpkg -i ../usbmount_*_all.deb
+    rm -f ../usbmount_*
 }
 
 function enable_usbromservice() {
@@ -81,10 +82,11 @@ function enable_directusbromservice() {
 }
 
 function disable_usbromservice() {
-    rm -f /etc/usbmount/mount.d/01_retropie_copyroms
-    rm -f /etc/usbmount/mount.d/01_retropie_directusb
-    rm -f /etc/usbmount/umount.d/01_umount_usb
-    rm -f /etc/profile.d/02_umount_usb
+    local file
+    for file in "$md_data/"*; do
+        file="/etc/usbmount/mount.d/${file##*/}"
+        rm -f "$file"
+    done
 }
 
 function remove_usbromservice() {
