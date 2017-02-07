@@ -76,7 +76,7 @@ function gui_esthemes() {
         'robertybob simplebigart'
         'RetroPie clean-look'
         'HerbFargus tronkyfran'
-        'eddywebs es-theme-eudora'
+        'eddywebs eudora'
     )
     while true; do
         local theme
